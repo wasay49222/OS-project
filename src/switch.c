@@ -21,9 +21,15 @@
 
 #define QUEUE_CAPACITY 64U
 #define MAC_BUCKETS 64U
+#ifndef MAC_LIMIT
 #define MAC_LIMIT 1024U
+#endif
+#ifndef MACS_PER_PORT
 #define MACS_PER_PORT 16U
+#endif
+#ifndef MAC_AGE_SECONDS
 #define MAC_AGE_SECONDS 300
+#endif
 #define PORT_WAIT_SECONDS 5
 
 typedef struct Packet {
@@ -108,6 +114,30 @@ static void sem_post_check(sem_t *semaphore)
 
 #define PTHREAD_CHECK(call) pthread_check((call))
 #define SEM_POST_CHECK(semaphore) sem_post_check((semaphore))
+
+static void clock_gettime_check(clockid_t clock_id, struct timespec *value)
+{
+    if (clock_gettime(clock_id, value) < 0) {
+        perror("clock_gettime");
+        abort();
+    }
+}
+
+static void socket_shutdown(int fd)
+{
+    if (shutdown(fd, SHUT_RDWR) < 0 && errno != ENOTCONN) {
+        perror("shutdown");
+        abort();
+    }
+}
+
+static void close_fd(int fd)
+{
+    if (close(fd) < 0) {
+        perror("close");
+        abort();
+    }
+}
 
 static void packet_unref(Packet *packet)
 {
@@ -273,7 +303,7 @@ static int mac_learn(Switch *sw, const uint8_t address[6], unsigned port)
     size_t index = mac_bucket_index(address);
     MacBucket *bucket = &sw->mac[index];
     struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
+    clock_gettime_check(CLOCK_MONOTONIC, &now);
 
     PTHREAD_CHECK(pthread_mutex_lock(&bucket->lock));
     for (MacEntry *entry = bucket->head; entry != NULL; entry = entry->next) {
@@ -291,7 +321,7 @@ static int mac_learn(Switch *sw, const uint8_t address[6], unsigned port)
                 fprintf(stderr, "MAC moved to port %u\n", port + 1U);
                 if (count > MACS_PER_PORT) {
                     fprintf(stderr, "port %u shut down: MAC limit exceeded\n", port + 1U);
-                    shutdown(sw->ports[port].fd, SHUT_RDWR);
+                    socket_shutdown(sw->ports[port].fd);
                     return -1;
                 }
             }
@@ -317,7 +347,7 @@ static int mac_learn(Switch *sw, const uint8_t address[6], unsigned port)
             if (old_port != port) {
                 fprintf(stderr, "MAC moved to port %u\n", port + 1U);
                 if (count > MACS_PER_PORT) {
-                    shutdown(sw->ports[port].fd, SHUT_RDWR);
+                    socket_shutdown(sw->ports[port].fd);
                     return -1;
                 }
             }
@@ -347,7 +377,7 @@ static int mac_learn(Switch *sw, const uint8_t address[6], unsigned port)
 
     if (count > MACS_PER_PORT) {
         fprintf(stderr, "port %u shut down: MAC limit exceeded\n", port + 1U);
-        shutdown(sw->ports[port].fd, SHUT_RDWR);
+        socket_shutdown(sw->ports[port].fd);
         return -1;
     }
     return 0;
@@ -358,7 +388,7 @@ static int mac_lookup(Switch *sw, const uint8_t address[6], unsigned *port)
     MacBucket *bucket = &sw->mac[mac_bucket_index(address)];
     int found = 0;
     struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
+    clock_gettime_check(CLOCK_MONOTONIC, &now);
 
     PTHREAD_CHECK(pthread_mutex_lock(&bucket->lock));
     for (MacEntry *entry = bucket->head; entry != NULL; entry = entry->next) {
@@ -376,7 +406,7 @@ static int mac_lookup(Switch *sw, const uint8_t address[6], unsigned *port)
 static void mac_age(Switch *sw)
 {
     struct timespec now;
-    clock_gettime(CLOCK_MONOTONIC, &now);
+    clock_gettime_check(CLOCK_MONOTONIC, &now);
 
     for (size_t i = 0; i < MAC_BUCKETS; i++) {
         MacBucket *bucket = &sw->mac[i];
@@ -417,7 +447,7 @@ static void *aging_thread(void *argument)
     PTHREAD_CHECK(pthread_mutex_lock(&sw->timer_lock));
     while (!atomic_load(&sw->stopping)) {
         struct timespec deadline;
-        clock_gettime(CLOCK_REALTIME, &deadline);
+        clock_gettime_check(CLOCK_REALTIME, &deadline);
         deadline.tv_sec += 1;
         int wait_result = pthread_cond_timedwait(&sw->timer_changed, &sw->timer_lock,
                                                  &deadline);
@@ -473,7 +503,7 @@ static void *sender_thread(void *argument)
         }
         if (frame_write(sw->ports[index].fd, &packet->frame) < 0) {
             packet_unref(packet);
-            shutdown(sw->ports[index].fd, SHUT_RDWR);
+            socket_shutdown(sw->ports[index].fd);
             queue_close(&sw->ports[index].output);
             break;
         }
@@ -501,12 +531,13 @@ static void *receiver_thread(void *argument)
     queue_close(&sw->ports[index].output);
     PTHREAD_CHECK(pthread_join(sw->ports[index].sender, NULL));
     mac_remove_port(sw, index);
-    shutdown(sw->ports[index].fd, SHUT_RDWR);
-    close(sw->ports[index].fd);
     PTHREAD_CHECK(pthread_mutex_lock(&sw->ports_lock));
+    int client_fd = sw->ports[index].fd;
     sw->ports[index].fd = -1;
     sw->ports[index].state = PORT_FREE;
     PTHREAD_CHECK(pthread_mutex_unlock(&sw->ports_lock));
+    socket_shutdown(client_fd);
+    close_fd(client_fd);
     SEM_POST_CHECK(&sw->free_ports);
     return NULL;
 }
@@ -514,8 +545,9 @@ static void *receiver_thread(void *argument)
 static void stop_switch(Switch *sw)
 {
     atomic_store(&sw->stopping, true);
-    shutdown(sw->listener, SHUT_RDWR);
-    close(sw->listener);
+    SEM_POST_CHECK(&sw->free_ports);
+    socket_shutdown(sw->listener);
+    close_fd(sw->listener);
     PTHREAD_CHECK(pthread_mutex_lock(&sw->timer_lock));
     PTHREAD_CHECK(pthread_cond_broadcast(&sw->timer_changed));
     PTHREAD_CHECK(pthread_mutex_unlock(&sw->timer_lock));
@@ -524,7 +556,7 @@ static void stop_switch(Switch *sw)
     for (unsigned i = 0; i < sw->port_count; i++) {
         if (sw->ports[i].state == PORT_ACTIVE) {
             queue_close(&sw->ports[i].output);
-            shutdown(sw->ports[i].fd, SHUT_RDWR);
+            socket_shutdown(sw->ports[i].fd);
         }
     }
     PTHREAD_CHECK(pthread_mutex_unlock(&sw->ports_lock));
@@ -534,12 +566,17 @@ static void *signal_thread(void *argument)
 {
     Switch *sw = argument;
     sigset_t signals;
-    sigemptyset(&signals);
-    sigaddset(&signals, SIGINT);
-    int signal_number;
-    if (sigwait(&signals, &signal_number) == 0) {
+    if (sigemptyset(&signals) < 0 || sigaddset(&signals, SIGINT) < 0) {
+        perror("signal set setup");
         stop_switch(sw);
+        return NULL;
     }
+    int signal_number;
+    int result = sigwait(&signals, &signal_number);
+    if (result != 0) {
+        fprintf(stderr, "sigwait failed: %s\n", strerror(result));
+    }
+    stop_switch(sw);
     return NULL;
 }
 
@@ -551,7 +588,7 @@ static int create_listener(unsigned port)
     }
     int reuse = 1;
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
-        close(fd);
+        close_fd(fd);
         return -1;
     }
     struct sockaddr_in address = {0};
@@ -560,7 +597,7 @@ static int create_listener(unsigned port)
     address.sin_port = htons((uint16_t)port);
     if (bind(fd, (struct sockaddr *)&address, sizeof(address)) < 0 ||
         listen(fd, 64) < 0) {
-        close(fd);
+        close_fd(fd);
         return -1;
     }
     return fd;
@@ -569,7 +606,7 @@ static int create_listener(unsigned port)
 static int reserve_port(Switch *sw, int client)
 {
     struct timespec deadline;
-    clock_gettime(CLOCK_REALTIME, &deadline);
+    clock_gettime_check(CLOCK_REALTIME, &deadline);
     deadline.tv_sec += PORT_WAIT_SECONDS;
     while (sem_timedwait(&sw->free_ports, &deadline) < 0) {
         if (errno == EINTR) {
@@ -579,8 +616,16 @@ static int reserve_port(Switch *sw, int client)
             continue;
         }
         if (errno == ETIMEDOUT) {
-            (void)write_full(client, "switch full\n", 12);
+            if (write_full(client, "switch full\n", 12) < 0) {
+                perror("write switch full reply");
+            }
+        } else {
+            perror("sem_timedwait");
         }
+        return -1;
+    }
+    if (atomic_load(&sw->stopping)) {
+        SEM_POST_CHECK(&sw->free_ports);
         return -1;
     }
 
@@ -618,7 +663,6 @@ static int reserve_port(Switch *sw, int client)
     if (sender_task == NULL || receiver_task == NULL) {
         free(sender_task);
         free(receiver_task);
-        close(client);
         PTHREAD_CHECK(pthread_mutex_lock(&sw->ports_lock));
         port->fd = -1;
         port->state = PORT_FREE;
@@ -633,7 +677,6 @@ static int reserve_port(Switch *sw, int client)
     if (pthread_create(&port->sender, NULL, sender_thread, sender_task) != 0) {
         free(sender_task);
         free(receiver_task);
-        close(client);
         PTHREAD_CHECK(pthread_mutex_lock(&sw->ports_lock));
         port->fd = -1;
         port->state = PORT_FREE;
@@ -655,7 +698,6 @@ static int reserve_port(Switch *sw, int client)
         free(receiver_task);
         queue_close(&port->output);
         PTHREAD_CHECK(pthread_join(port->sender, NULL));
-        close(client);
         PTHREAD_CHECK(pthread_mutex_lock(&sw->ports_lock));
         port->fd = -1;
         port->state = PORT_FREE;
@@ -676,30 +718,97 @@ static int switch_init(Switch *sw, unsigned port_count)
     if (sw->ports == NULL) {
         return -1;
     }
-    if (sem_init(&sw->free_ports, 0, port_count) != 0 ||
-        pthread_mutex_init(&sw->ports_lock, NULL) != 0 ||
-        pthread_mutex_init(&sw->mac_eviction_lock, NULL) != 0 ||
-        pthread_mutex_init(&sw->timer_lock, NULL) != 0 ||
-        pthread_cond_init(&sw->timer_changed, NULL) != 0) {
-        return -1;
+    bool sem_ready = false;
+    bool ports_lock_ready = false;
+    bool eviction_lock_ready = false;
+    bool timer_lock_ready = false;
+    bool timer_cond_ready = false;
+    unsigned ports_ready = 0;
+    size_t buckets_ready = 0;
+    int error = 0;
+
+    if (sem_init(&sw->free_ports, 0, port_count) != 0) {
+        perror("sem_init");
+        goto fail;
     }
+    sem_ready = true;
+    error = pthread_mutex_init(&sw->ports_lock, NULL);
+    if (error != 0) {
+        goto fail;
+    }
+    ports_lock_ready = true;
+    error = pthread_mutex_init(&sw->mac_eviction_lock, NULL);
+    if (error != 0) {
+        goto fail;
+    }
+    eviction_lock_ready = true;
+    error = pthread_mutex_init(&sw->timer_lock, NULL);
+    if (error != 0) {
+        goto fail;
+    }
+    timer_lock_ready = true;
+    error = pthread_cond_init(&sw->timer_changed, NULL);
+    if (error != 0) {
+        goto fail;
+    }
+    timer_cond_ready = true;
+
     for (unsigned i = 0; i < port_count; i++) {
         sw->ports[i].fd = -1;
         atomic_init(&sw->ports[i].mac_count, 0);
         atomic_init(&sw->ports[i].output.dropped, 0);
-        if (pthread_mutex_init(&sw->ports[i].output.lock, NULL) != 0 ||
-            pthread_cond_init(&sw->ports[i].output.ready, NULL) != 0) {
-            return -1;
+        error = pthread_mutex_init(&sw->ports[i].output.lock, NULL);
+        if (error != 0) {
+            goto fail;
         }
+        error = pthread_cond_init(&sw->ports[i].output.ready, NULL);
+        if (error != 0) {
+            PTHREAD_CHECK(pthread_mutex_destroy(&sw->ports[i].output.lock));
+            goto fail;
+        }
+        ports_ready++;
     }
     for (size_t i = 0; i < MAC_BUCKETS; i++) {
-        if (pthread_mutex_init(&sw->mac[i].lock, NULL) != 0) {
-            return -1;
+        error = pthread_mutex_init(&sw->mac[i].lock, NULL);
+        if (error != 0) {
+            goto fail;
         }
+        buckets_ready++;
     }
     atomic_init(&sw->stopping, false);
     atomic_init(&sw->mac_count, 0);
     return 0;
+
+fail:
+    if (error != 0) {
+        fprintf(stderr, "switch synchronization setup failed: %s\n",
+                strerror(error));
+    }
+    for (size_t i = 0; i < buckets_ready; i++) {
+        PTHREAD_CHECK(pthread_mutex_destroy(&sw->mac[i].lock));
+    }
+    for (unsigned i = 0; i < ports_ready; i++) {
+        PTHREAD_CHECK(pthread_cond_destroy(&sw->ports[i].output.ready));
+        PTHREAD_CHECK(pthread_mutex_destroy(&sw->ports[i].output.lock));
+    }
+    if (timer_cond_ready) {
+        PTHREAD_CHECK(pthread_cond_destroy(&sw->timer_changed));
+    }
+    if (timer_lock_ready) {
+        PTHREAD_CHECK(pthread_mutex_destroy(&sw->timer_lock));
+    }
+    if (eviction_lock_ready) {
+        PTHREAD_CHECK(pthread_mutex_destroy(&sw->mac_eviction_lock));
+    }
+    if (ports_lock_ready) {
+        PTHREAD_CHECK(pthread_mutex_destroy(&sw->ports_lock));
+    }
+    if (sem_ready && sem_destroy(&sw->free_ports) < 0) {
+        perror("sem_destroy");
+    }
+    free(sw->ports);
+    sw->ports = NULL;
+    return -1;
 }
 
 static void switch_destroy(Switch *sw)
@@ -724,7 +833,10 @@ static void switch_destroy(Switch *sw)
     PTHREAD_CHECK(pthread_mutex_destroy(&sw->timer_lock));
     PTHREAD_CHECK(pthread_mutex_destroy(&sw->mac_eviction_lock));
     PTHREAD_CHECK(pthread_mutex_destroy(&sw->ports_lock));
-    sem_destroy(&sw->free_ports);
+    if (sem_destroy(&sw->free_ports) < 0) {
+        perror("sem_destroy");
+        abort();
+    }
     free(sw->ports);
 }
 
@@ -747,12 +859,18 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    signal(SIGPIPE, SIG_IGN);
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        perror("signal SIGPIPE");
+        return EXIT_FAILURE;
+    }
     sigset_t signals;
-    sigemptyset(&signals);
-    sigaddset(&signals, SIGINT);
-    if (pthread_sigmask(SIG_BLOCK, &signals, NULL) != 0) {
-        perror("pthread_sigmask");
+    if (sigemptyset(&signals) < 0 || sigaddset(&signals, SIGINT) < 0) {
+        perror("signal set setup");
+        return EXIT_FAILURE;
+    }
+    int mask_result = pthread_sigmask(SIG_BLOCK, &signals, NULL);
+    if (mask_result != 0) {
+        fprintf(stderr, "pthread_sigmask failed: %s\n", strerror(mask_result));
         return EXIT_FAILURE;
     }
 
@@ -771,7 +889,7 @@ int main(int argc, char **argv)
     int create_result = pthread_create(&aging_worker, NULL, aging_thread, &sw);
     if (create_result != 0) {
         fprintf(stderr, "could not start aging thread: %s\n", strerror(create_result));
-        close(sw.listener);
+        close_fd(sw.listener);
         switch_destroy(&sw);
         return EXIT_FAILURE;
     }
@@ -800,7 +918,7 @@ int main(int argc, char **argv)
             continue;
         }
         if (atomic_load(&sw.stopping) || reserve_port(&sw, client) < 0) {
-            close(client);
+            close_fd(client);
         }
     }
 

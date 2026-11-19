@@ -30,14 +30,18 @@ def connect_when_ready(process):
 def wait_for_connected(process, count):
     connected = 0
     events = []
+    pending = b""
     deadline = time.monotonic() + 3
     while connected < count and time.monotonic() < deadline:
         ready, _, _ = select.select([process.stderr], [], [], 0.1)
         if ready:
-            line = process.stderr.readline()
-            events.append(line.strip())
-            if "host connected on port" in line:
-                connected += 1
+            chunk = os.read(process.stderr.fileno(), 4096)
+            pending += chunk
+            while b"\n" in pending:
+                line, pending = pending.split(b"\n", 1)
+                events.append(line.decode(errors="replace"))
+                if b"host connected on port" in line:
+                    connected += 1
     if connected != count:
         raise RuntimeError(f"switch activated {connected}/{count} ports: {events}")
 
@@ -71,7 +75,7 @@ def main():
     command.extend([str(SWITCH_PORT), "3"])
     process = subprocess.Popen(command,
                                stdout=subprocess.DEVNULL,
-                               stderr=subprocess.PIPE, text=True)
+                               stderr=subprocess.PIPE)
     clients = []
     try:
         a = connect_when_ready(process)
@@ -120,7 +124,7 @@ def main():
             process.wait()
             raise
         if process.returncode != 0:
-            raise RuntimeError(process.stderr.read())
+            raise RuntimeError(process.stderr.read().decode(errors="replace"))
 
 
 if __name__ == "__main__":

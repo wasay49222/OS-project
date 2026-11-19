@@ -12,8 +12,14 @@ The switch will be started as `./switch <tcp_port> <num_ports>`. The test host w
 
 ## Configuration
 
-Configuration file format and optional settings will be documented as they are implemented.
+Tier 1 does not use a configuration file. Its current limits are 64 queued frames per port, 1,024 MAC table entries, 16 learned MAC addresses per port, a 300-second MAC age, and a five-second wait for a free port.
 
-## Project status
+## Tier 1 status
 
-Implementation is in progress. The frame reader and writer handle fragmented TCP data, network byte order, oversized payload lengths, and truncated input. The switch currently learns source MAC addresses, floods unknown and broadcast traffic, forwards known unicast traffic, and uses a bounded queue and sender thread per port. MAC table aging, size limiting, and per-port MAC limits are implemented. Further completed requirements and test results will be recorded here as features are added.
+Tier 1 items 1 to 5 are implemented. Frames use the fixed 17-byte header, and the switch handles fragmented input, partial writes, truncated connections, broadcasts, unknown destinations, and learned unicast. Each port has a bounded output queue and sender thread. Broadcast packets share one frame with reference counting. The MAC table uses one lock per bucket, aging, least-recently-used eviction, move logging, and a per-port MAC limit. A timed semaphore limits active hosts.
+
+## Checks
+
+Run `make check` to build with the course flags and test frame handling, forwarding, broadcast, slow-host isolation, disconnect recovery, the port limit, MAC moves, MAC aging, LRU eviction, port security, and clean SIGINT shutdown. Protocol, forwarding, lifecycle, table, and security tests were also run under Valgrind and ThreadSanitizer; the slow-host stress was run under ThreadSanitizer.
+
+One real bug found during development was a client socket being closed twice when port reservation failed. GCC's static analyzer found it; the server now leaves the socket close to its owning caller.

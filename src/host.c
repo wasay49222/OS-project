@@ -3,9 +3,11 @@
 #include "frame.h"
 
 #include <arpa/inet.h>
+#include <errno.h>
 #include <netdb.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <signal.h>
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -14,11 +16,29 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
+#define PTHREAD_CHECK(call) pthread_check((call))
+
 typedef struct {
     int fd;
     atomic_bool finished;
     pthread_mutex_t output_lock;
 } Host;
+
+static void pthread_check(int result)
+{
+    if (result != 0) {
+        fprintf(stderr, "pthread call failed: %s\n", strerror(result));
+        abort();
+    }
+}
+
+static void close_fd(int fd)
+{
+    if (close(fd) < 0) {
+        perror("close");
+        abort();
+    }
+}
 
 static int parse_mac(const char *text, uint8_t address[6])
 {
@@ -34,10 +54,10 @@ static int parse_mac(const char *text, uint8_t address[6])
     return 0;
 }
 
-static void print_mac(const uint8_t address[6])
+static int print_mac(const uint8_t address[6])
 {
-    printf("%02x:%02x:%02x:%02x:%02x:%02x", address[0], address[1],
-           address[2], address[3], address[4], address[5]);
+    return printf("%02x:%02x:%02x:%02x:%02x:%02x", address[0], address[1],
+                  address[2], address[3], address[4], address[5]) < 0 ? -1 : 0;
 }
 
 static void *receive_frames(void *argument)
@@ -46,19 +66,24 @@ static void *receive_frames(void *argument)
     Frame frame;
 
     while (frame_read(host->fd, &frame) == 1) {
-        pthread_mutex_lock(&host->output_lock);
-        printf("received from ");
-        print_mac(frame.header + 2);
-        printf(" to ");
-        print_mac(frame.header + 8);
-        printf(" vlan %u priority %u payload: ", frame_vlan(&frame),
-               frame_priority(&frame));
-        if (frame.payload_length != 0) {
-            (void)fwrite(frame.payload, 1, frame.payload_length, stdout);
+        PTHREAD_CHECK(pthread_mutex_lock(&host->output_lock));
+        int failed = printf("received from ") < 0 || print_mac(frame.header + 2) < 0 ||
+                     printf(" to ") < 0 || print_mac(frame.header + 8) < 0 ||
+                     printf(" vlan %u priority %u payload: ", frame_vlan(&frame),
+                            frame_priority(&frame)) < 0;
+        if (!failed && frame.payload_length != 0 &&
+            fwrite(frame.payload, 1, frame.payload_length, stdout) !=
+                frame.payload_length) {
+            failed = 1;
         }
-        putchar('\n');
-        fflush(stdout);
-        pthread_mutex_unlock(&host->output_lock);
+        if (!failed && (putchar('\n') == EOF || fflush(stdout) == EOF)) {
+            failed = 1;
+        }
+        PTHREAD_CHECK(pthread_mutex_unlock(&host->output_lock));
+        if (failed) {
+            perror("write host output");
+            break;
+        }
     }
     atomic_store(&host->finished, true);
     return NULL;
@@ -82,7 +107,7 @@ static int connect_to_switch(const char *ip, const char *port)
             break;
         }
         if (fd >= 0) {
-            close(fd);
+            close_fd(fd);
             fd = -1;
         }
     }
@@ -107,11 +132,11 @@ static int send_line(Host *host, const uint8_t source[6], char *line)
     }
     char *end = NULL;
     unsigned long vlan = strtoul(vlan_text, &end, 10);
-    if (*vlan_text == '\0' || *end != '\0' || vlan > 65535) {
+    if (*vlan_text == '\0' || *end != '\0' || vlan < 1 || vlan > 4094) {
         return -1;
     }
     unsigned long priority = strtoul(priority_text, &end, 10);
-    if (*priority_text == '\0' || *end != '\0' || priority > 255) {
+    if (*priority_text == '\0' || *end != '\0' || priority > 2) {
         return -1;
     }
     size_t payload_length = payload_text == NULL ? 0 : strlen(payload_text);
@@ -145,6 +170,10 @@ int main(int argc, char **argv)
         fprintf(stderr, "invalid MAC address\n");
         return EXIT_FAILURE;
     }
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR) {
+        perror("signal SIGPIPE");
+        return EXIT_FAILURE;
+    }
     Host host = {0};
     host.fd = connect_to_switch(argv[1], argv[2]);
     if (host.fd < 0) {
@@ -152,14 +181,14 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
     if (pthread_mutex_init(&host.output_lock, NULL) != 0) {
-        close(host.fd);
+        close_fd(host.fd);
         return EXIT_FAILURE;
     }
     atomic_init(&host.finished, false);
     pthread_t receiver;
     if (pthread_create(&receiver, NULL, receive_frames, &host) != 0) {
-        pthread_mutex_destroy(&host.output_lock);
-        close(host.fd);
+        PTHREAD_CHECK(pthread_mutex_destroy(&host.output_lock));
+        close_fd(host.fd);
         return EXIT_FAILURE;
     }
 
@@ -170,10 +199,15 @@ int main(int argc, char **argv)
             fprintf(stderr, "invalid frame or connection closed\n");
         }
     }
+    if (ferror(stdin)) {
+        perror("read host input");
+    }
     free(line);
-    shutdown(host.fd, SHUT_RDWR);
-    pthread_join(receiver, NULL);
-    close(host.fd);
-    pthread_mutex_destroy(&host.output_lock);
+    if (shutdown(host.fd, SHUT_RDWR) < 0 && errno != ENOTCONN) {
+        perror("shutdown");
+    }
+    PTHREAD_CHECK(pthread_join(receiver, NULL));
+    close_fd(host.fd);
+    PTHREAD_CHECK(pthread_mutex_destroy(&host.output_lock));
     return EXIT_SUCCESS;
 }

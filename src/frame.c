@@ -16,7 +16,8 @@ int frame_read(int fd, Frame *frame)
     uint16_t wire_length;
     memcpy(&wire_length, frame->header, sizeof(wire_length));
     frame->payload_length = ntohs(wire_length);
-    if (frame->payload_length > FRAME_MAX_PAYLOAD) {
+    if (frame->payload_length > FRAME_MAX_PAYLOAD || frame_priority(frame) > 2 ||
+        frame_vlan(frame) < 1 || frame_vlan(frame) > 4094) {
         return -1;
     }
 
@@ -28,7 +29,8 @@ int frame_read(int fd, Frame *frame)
 
 int frame_write(int fd, const Frame *frame)
 {
-    if (frame->payload_length > FRAME_MAX_PAYLOAD) {
+    if (frame->payload_length > FRAME_MAX_PAYLOAD || frame_priority(frame) > 2 ||
+        frame_vlan(frame) < 1 || frame_vlan(frame) > 4094) {
         return -1;
     }
     if (write_full(fd, frame->header, FRAME_HEADER_SIZE) < 0) {
