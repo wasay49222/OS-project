@@ -4,7 +4,7 @@ Operating Systems Fall 2026 course project.
 
 ## Build
 
-Run `make` to build the programs. Run `make clean` to remove generated files.
+Run `make check` to build and run the protocol tests. Run `make clean` to remove generated files. The switch and host executables are not implemented yet.
 
 ## Run
 
@@ -16,4 +16,4 @@ Configuration file format and optional settings will be documented as they are i
 
 ## Project status
 
-Implementation is in progress. Completed requirements and test results will be recorded here as features are added.
+Implementation is in progress. The frame reader and writer handle fragmented TCP data, network byte order, oversized payload lengths, and truncated input. Further completed requirements and test results will be recorded here as features are added.
