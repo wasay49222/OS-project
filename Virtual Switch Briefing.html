@@ -1,0 +1,1066 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Virtual Switch Briefing</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a stack of projector slides on a cool "equipment bench" ground; each slide is a labelled
+   rack unit (number + title strip), diagrams sit full width, amber marks the frame being discussed. */
+:root {
+  --ground: #EBEFEC;
+  --surface: #FFFFFF;
+  --panel: #F4F7F5;
+  --ink: #16201B;
+  --muted: #5A6862;
+  --line: #C3CDC7;
+  --accent: #B86E00;
+  --accent-soft: #F6E3C4;
+  --drop: #B83A28;
+  --v10: #17788A;
+  --v20: #7B4BA3;
+  --display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --s1: 0.875rem; --s2: 1rem; --s3: 1.25rem; --s4: 1.75rem; --s5: 2.6rem; --s6: 4.2rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #101513; --surface: #18201C; --panel: #1D2622; --ink: #E3EAE6; --muted: #98A69F;
+    --line: #34423B; --accent: #F2A436; --accent-soft: #4A3613; --drop: #F0806B; --v10: #52B8CB; --v20: #B790DC;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #101513; --surface: #18201C; --panel: #1D2622; --ink: #E3EAE6; --muted: #98A69F;
+  --line: #34423B; --accent: #F2A436; --accent-soft: #4A3613; --drop: #F0806B; --v10: #52B8CB; --v20: #B790DC;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--ground); color: var(--ink); font-family: var(--body); font-size: var(--s2); line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 96px;
+}
+main { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+.slide { background: var(--surface); border: 1px solid var(--line); border-radius: 4px; scroll-margin-top: 16px; }
+.slide > header { display: flex; align-items: baseline; gap: 16px; padding: 14px 28px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+.no { font-family: var(--mono); font-size: var(--s1); color: var(--accent); font-weight: 500; letter-spacing: 0.04em; }
+h1, h2 { font-family: var(--display); font-weight: 600; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+h2 { font-size: var(--s4); line-height: 1.1; flex: 1; }
+.tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+.body { padding: 24px 28px 28px; display: flex; flex-direction: column; gap: 18px; }
+.body > p, .body li { max-width: 70ch; }
+p { margin: 0; }
+ul, ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+code, .m { font-family: var(--mono); font-size: 0.9em; }
+strong { font-weight: 600; }
+.lead { font-size: var(--s3); line-height: 1.45; max-width: 60ch; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; align-items: start; }
+.two h3, .body h3 { font-family: var(--display); font-weight: 600; font-size: var(--s3); margin: 0 0 8px; letter-spacing: 0.02em; }
+pre { margin: 0; font-family: var(--mono); font-size: 0.85rem; line-height: 1.5; background: var(--panel); border: 1px solid var(--line); border-radius: 3px; padding: 14px 16px; overflow-x: auto; }
+pre .c { color: var(--muted); }
+pre .k { color: var(--accent); }
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+figcaption { font-size: var(--s1); color: var(--muted); max-width: 80ch; }
+.fig { overflow-x: auto; }
+.fig svg { display: block; width: 100%; min-width: 640px; height: auto; }
+.fig.narrow svg { min-width: 380px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+.tbl { overflow-x: auto; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 500; }
+.new { display: inline-block; font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); border: 1px solid var(--accent); border-radius: 2px; padding: 0 5px; font-weight: 600; }
+.seen { color: var(--muted); font-family: var(--mono); font-size: 0.85rem; }
+
+/* title slide */
+.cover .body { padding: 48px 28px 40px; gap: 22px; }
+.cover h1 { font-size: var(--s6); line-height: 0.95; letter-spacing: 0.005em; }
+.cover .kicker { font-family: var(--mono); font-size: var(--s1); color: var(--muted); letter-spacing: 0.06em; }
+.ports { display: flex; gap: 8px; flex-wrap: wrap; }
+.port { width: 46px; height: 34px; border: 1.5px solid var(--ink); border-radius: 2px; position: relative; display: grid; place-items: end center; font-family: var(--mono); font-size: 0.65rem; color: var(--muted); padding-bottom: 2px; }
+.port::before { content: ""; position: absolute; top: 5px; left: 8px; width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.port.on::before { background: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .port.on::before { animation: blink 1.4s steps(2, jump-none) infinite; }
+  .port.on:nth-child(3n)::before { animation-duration: 0.9s; }
+  .port.on:nth-child(4n)::before { animation-duration: 2.1s; }
+}
+@keyframes blink { 50% { opacity: 0.25; } }
+.agenda { columns: 2 240px; column-gap: 32px; display: block; }
+.agenda li { break-inside: avoid; margin-bottom: 4px; }
+
+/* SVG diagrams */
+.d text { font-family: var(--body); font-size: 13px; fill: var(--ink); }
+.d .t { font-family: var(--display); font-size: 17px; font-weight: 600; letter-spacing: 0.02em; }
+.d .mono { font-family: var(--mono); font-size: 12px; }
+.d .sm { font-size: 11.5px; }
+.d .mu { fill: var(--muted); }
+.d .ac { fill: var(--accent); }
+.d .dr { fill: var(--drop); }
+.d .box { fill: var(--surface); stroke: var(--ink); stroke-width: 1.5; }
+.d .soft { fill: var(--panel); stroke: var(--line); stroke-width: 1.2; }
+.d .big { fill: var(--panel); stroke: var(--ink); stroke-width: 1.5; }
+.d .hotbox { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; }
+.d .dropbox { fill: var(--surface); stroke: var(--drop); stroke-width: 2; }
+.d .w { stroke: var(--ink); stroke-width: 1.5; fill: none; }
+.d .wm { stroke: var(--muted); stroke-width: 1.4; fill: none; }
+.d .wd { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+.d .wa { stroke: var(--accent); stroke-width: 2.6; fill: none; }
+.d .wr { stroke: var(--drop); stroke-width: 2; fill: none; }
+.d .w10 { stroke: var(--v10); stroke-width: 2.6; fill: none; }
+.d .slot { fill: var(--surface); stroke: var(--muted); stroke-width: 1; }
+.d .slotf { fill: var(--accent); stroke: var(--muted); stroke-width: 1; }
+.d .slotr { fill: var(--drop); stroke: var(--muted); stroke-width: 1; }
+.d .p10 { fill: var(--surface); stroke: var(--v10); stroke-width: 2.5; }
+.d .p20 { fill: var(--surface); stroke: var(--v20); stroke-width: 2.5; }
+.d .t10 { fill: var(--v10); }
+.d .t20 { fill: var(--v20); }
+.d .ptrunk { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2.5; }
+.d .tick { stroke: var(--line); stroke-width: 1; }
+.d .mk-ink { fill: var(--ink); }
+.d .mk-ac { fill: var(--accent); }
+.d .mk-mu { fill: var(--muted); }
+.d .mk-dr { fill: var(--drop); }
+.d .mk-10 { fill: var(--v10); }
+
+/* slide navigation */
+.nav { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 6px; font-family: var(--mono); font-size: var(--s1); box-shadow: 0 2px 10px rgb(0 0 0 / 0.08); z-index: 5; }
+.nav button { font: inherit; background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 3px; width: 34px; height: 30px; cursor: pointer; }
+.nav button:hover { border-color: var(--accent); }
+.nav button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+#count { min-width: 64px; text-align: center; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) {
+  .slide > header, .body { padding-left: 16px; padding-right: 16px; }
+  .cover h1 { font-size: var(--s5); }
+}
+</style>
+
+<main id="deck">
+
+<!-- 01 -->
+<section class="slide cover" id="s1">
+  <div class="body">
+    <div class="kicker">OPERATING SYSTEMS · FALL 2026 · COURSE PROJECT</div>
+    <h1>Virtual Switch</h1>
+    <p class="lead">You will build a network switch in C: one multithreaded server process, with hosts, an admin tool and a supervisor as separate processes. Everything from Labs 02 to 08 goes into it.</p>
+    <div class="ports" aria-hidden="true">
+      <div class="port on">1</div><div class="port">2</div><div class="port on">3</div><div class="port on">4</div>
+      <div class="port">5</div><div class="port on">6</div><div class="port">7</div><div class="port on">8</div>
+    </div>
+    <div>
+      <h3 style="font-family:var(--display);font-weight:600;font-size:var(--s3);margin:0 0 8px">Today</h3>
+      <ol class="agenda">
+        <li>What a switch does</li>
+        <li>Our switch: processes and threads</li>
+        <li>Tier 1: the core items</li>
+        <li>Tier 2: the advanced items</li>
+        <li>The bonus: two switches and a trunk</li>
+        <li>What is new: sockets, condition variables</li>
+        <li>The tools: valgrind, ThreadSanitizer, gdb</li>
+        <li>Rules, marking, what to hand in</li>
+        <li>Where to start, then questions</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- 02 -->
+<section class="slide" id="s2">
+  <header><span class="no">02</span><h2>What a switch does</h2><span class="tag">Background</span></header>
+  <div class="body">
+    <figure>
+      <div class="fig">
+      <svg class="d" viewBox="0 0 960 345" role="img" aria-label="Host A sends a frame to host C. The switch learns that A is on port 1, finds C on port 3 in its MAC table, and sends the frame only to port 3.">
+        <defs><marker id="a-ink-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-2" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+        <!-- hosts -->
+        <rect class="hotbox" x="40" y="20" width="170" height="60" rx="3"/>
+        <text x="125" y="45" text-anchor="middle" class="t">Host A</text>
+        <text x="125" y="66" text-anchor="middle" class="mono">02:00:00:00:00:0A</text>
+        <rect class="box" x="250" y="20" width="170" height="60" rx="3"/>
+        <text x="335" y="45" text-anchor="middle" class="t">Host B</text>
+        <text x="335" y="66" text-anchor="middle" class="mono">02:00:00:00:00:0B</text>
+        <rect class="hotbox" x="460" y="20" width="170" height="60" rx="3"/>
+        <text x="545" y="45" text-anchor="middle" class="t">Host C</text>
+        <text x="545" y="66" text-anchor="middle" class="mono">02:00:00:00:00:0C</text>
+        <rect class="box" x="670" y="20" width="170" height="60" rx="3"/>
+        <text x="755" y="45" text-anchor="middle" class="t">Host D</text>
+        <text x="755" y="66" text-anchor="middle" class="mono">02:00:00:00:00:0D</text>
+        <!-- cables -->
+        <line class="wa" x1="125" y1="80" x2="125" y2="139"/>
+        <line class="wm" x1="335" y1="80" x2="335" y2="139"/>
+        <line class="wa" x1="545" y1="139" x2="545" y2="86" marker-end="url(#a-ac-2)"/>
+        <line class="wm" x1="755" y1="80" x2="755" y2="139"/>
+        <text x="135" y="106" class="mono sm ac">frame</text>
+        <text x="135" y="122" class="mono sm ac">dst ...:0C</text>
+        <!-- switch -->
+        <rect class="big" x="40" y="150" width="800" height="76" rx="3"/>
+        <rect class="box" x="103" y="139" width="44" height="22" rx="2"/><text x="125" y="155" text-anchor="middle" class="mono sm">1</text>
+        <rect class="box" x="313" y="139" width="44" height="22" rx="2"/><text x="335" y="155" text-anchor="middle" class="mono sm">2</text>
+        <rect class="box" x="523" y="139" width="44" height="22" rx="2"/><text x="545" y="155" text-anchor="middle" class="mono sm">3</text>
+        <rect class="box" x="733" y="139" width="44" height="22" rx="2"/><text x="755" y="155" text-anchor="middle" class="mono sm">4</text>
+        <polyline class="wa" points="125,161 125,192 545,192 545,161"/>
+        <text x="335" y="214" text-anchor="middle" class="sm mu">inside the switch: port 1 to port 3 only</text>
+        <text x="820" y="202" text-anchor="end" class="t">SWITCH</text>
+        <!-- mac table -->
+        <line class="wd" x1="440" y1="226" x2="440" y2="252"/>
+        <rect class="soft" x="300" y="252" width="280" height="84" rx="3"/>
+        <text x="316" y="274" class="sm mu">MAC table (learned)</text>
+        <text x="316" y="298" class="mono">02:00:00:00:00:0A  port 1</text>
+        <text x="316" y="320" class="mono">02:00:00:00:00:0C  port 3</text>
+      </svg>
+      </div>
+      <figcaption>A frame from A to C: the switch learns where A is, looks C up, and sends the frame to port 3 only. B and D never see it.</figcaption>
+    </figure>
+    <ol>
+      <li><strong>Learn:</strong> the source MAC came in on port 1, so the switch writes "0A is on port 1" in its MAC table.</li>
+      <li><strong>Look up:</strong> it looks for the destination MAC in the same table.</li>
+      <li><strong>Forward or flood:</strong> found, so it sends to that one port. Not found, or a broadcast, so it sends to every port except the one the frame came from.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- 03 -->
+<section class="slide" id="s3">
+  <header><span class="no">03</span><h2>Our switch is a group of processes</h2><span class="tag">The big picture</span></header>
+  <div class="body">
+    <figure>
+      <div class="fig">
+      <svg class="d" viewBox="0 0 960 510" role="img" aria-label="Host processes connect to the switch process over TCP, one connection per port. The swctl admin tool talks to the switch over a UNIX domain socket and reads counters from shared memory. The switch writes a log file, reads a config file, and receives signals.">
+        <defs><marker id="a-ink-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-3" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+        <!-- hosts -->
+        <rect class="box" x="20" y="40" width="200" height="60" rx="3"/>
+        <text x="120" y="64" text-anchor="middle" class="t">host process</text>
+        <text x="120" y="86" text-anchor="middle" class="mono sm">./host ... 02:..:0A</text>
+        <rect class="box" x="20" y="140" width="200" height="60" rx="3"/>
+        <text x="120" y="164" text-anchor="middle" class="t">host process</text>
+        <text x="120" y="186" text-anchor="middle" class="mono sm">./host ... 02:..:0B</text>
+        <rect class="box" x="20" y="240" width="200" height="60" rx="3"/>
+        <text x="120" y="264" text-anchor="middle" class="t">host process</text>
+        <text x="120" y="286" text-anchor="middle" class="mono sm">./host ... 02:..:0C</text>
+        <text x="120" y="340" text-anchor="middle" class="mu">more hosts, up to N</text>
+        <!-- TCP links -->
+        <line class="w" x1="226" y1="70" x2="312" y2="70" marker-start="url(#a-ink-s-3)" marker-end="url(#a-ink-3)"/>
+        <line class="w" x1="226" y1="170" x2="312" y2="170" marker-start="url(#a-ink-s-3)" marker-end="url(#a-ink-3)"/>
+        <line class="w" x1="226" y1="270" x2="312" y2="270" marker-start="url(#a-ink-s-3)" marker-end="url(#a-ink-3)"/>
+        <text x="269" y="60" text-anchor="middle" class="sm mu">TCP</text>
+        <text x="269" y="160" text-anchor="middle" class="sm mu">TCP</text>
+        <text x="269" y="260" text-anchor="middle" class="sm mu">TCP</text>
+        <!-- switch -->
+        <rect class="hotbox" x="330" y="20" width="300" height="380" rx="3"/>
+        <rect class="box" x="318" y="58" width="64" height="24" rx="2"/><text x="350" y="75" text-anchor="middle" class="mono sm">port 1</text>
+        <rect class="box" x="318" y="158" width="64" height="24" rx="2"/><text x="350" y="175" text-anchor="middle" class="mono sm">port 2</text>
+        <rect class="box" x="318" y="258" width="64" height="24" rx="2"/><text x="350" y="275" text-anchor="middle" class="mono sm">port 3</text>
+        <text x="505" y="196" text-anchor="middle" class="t">switch process</text>
+        <text x="505" y="220" text-anchor="middle" class="mono sm">./switch 9000 8</text>
+        <text x="505" y="246" text-anchor="middle" class="sm mu">one process, many threads</text>
+        <text x="505" y="264" text-anchor="middle" class="sm mu">(next slides)</text>
+        <!-- right column -->
+        <rect class="box" x="740" y="40" width="200" height="60" rx="3"/>
+        <text x="840" y="64" text-anchor="middle" class="t">admin process</text>
+        <text x="840" y="86" text-anchor="middle" class="mono sm">./swctl show mac</text>
+        <rect class="soft" x="740" y="140" width="200" height="60" rx="3"/>
+        <text x="840" y="164" text-anchor="middle" class="t">shared memory</text>
+        <text x="840" y="186" text-anchor="middle" class="sm mu">per-port counters</text>
+        <rect class="soft" x="740" y="240" width="200" height="60" rx="3"/>
+        <text x="840" y="264" text-anchor="middle" class="t">log file</text>
+        <text x="840" y="286" text-anchor="middle" class="mono sm">switch.log</text>
+        <rect class="soft" x="740" y="330" width="200" height="60" rx="3"/>
+        <text x="840" y="354" text-anchor="middle" class="t">config file</text>
+        <text x="840" y="376" text-anchor="middle" class="sm mu">VLANs, limits</text>
+        <line class="w" x1="636" y1="70" x2="734" y2="70" marker-start="url(#a-ink-s-3)" marker-end="url(#a-ink-3)"/>
+        <text x="685" y="60" text-anchor="middle" class="sm mu">UNIX socket</text>
+        <line class="w" x1="630" y1="170" x2="734" y2="170" marker-end="url(#a-ink-3)"/>
+        <text x="682" y="160" text-anchor="middle" class="sm mu">writes</text>
+        <line class="w" x1="630" y1="270" x2="734" y2="270" marker-end="url(#a-ink-3)"/>
+        <text x="682" y="260" text-anchor="middle" class="sm mu">writes</text>
+        <line class="w" x1="740" y1="360" x2="636" y2="360" marker-end="url(#a-ink-3)"/>
+        <text x="688" y="350" text-anchor="middle" class="sm mu">read</text>
+        <line class="wd" x1="840" y1="100" x2="840" y2="134" marker-end="url(#a-mu-3)"/>
+        <text x="850" y="122" class="sm mu">stats --watch reads</text>
+        <!-- signals -->
+        <rect class="soft" x="355" y="440" width="250" height="56" rx="3"/>
+        <text x="480" y="463" text-anchor="middle" class="t">kill from a terminal</text>
+        <text x="480" y="484" text-anchor="middle" class="mono sm">SIGINT  SIGHUP  SIGUSR1</text>
+        <line class="w" x1="480" y1="440" x2="480" y2="406" marker-end="url(#a-ink-3)"/>
+        <text x="490" y="426" class="sm mu">signals</text>
+      </svg>
+      </div>
+      <figcaption>Every box is a separate process or an OS object. Each TCP connection from a host takes one port of the switch.</figcaption>
+    </figure>
+    <ul>
+      <li><strong>Host:</strong> a client process you also write, for testing. Our test hosts replace yours when we mark.</li>
+      <li><strong>Switch:</strong> the server, listening on a TCP port. Each accepted connection is one switch port.</li>
+      <li><strong>swctl:</strong> a second client, for the admin. It uses a UNIX domain socket (a socket that is a file path, local only) and reads counters from shared memory, as in Lab 07.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="slide" id="s4">
+  <header><span class="no">04</span><h2>A frame, byte by byte</h2><span class="tag">Tier 1 · item 1</span></header>
+  <div class="body">
+    <figure>
+      <div class="fig">
+      <svg class="d" viewBox="0 0 960 160" role="img" aria-label="A frame is a 17-byte header: length 2 bytes, source MAC 6, destination MAC 6, vlan 2, priority 1, then 0 to 1500 bytes of payload.">
+        <defs><marker id="a-ink-4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-4" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+        <text x="30" y="28" text-anchor="middle" class="mono sm mu">0</text>
+        <text x="110" y="28" text-anchor="middle" class="mono sm mu">2</text>
+        <text x="350" y="28" text-anchor="middle" class="mono sm mu">8</text>
+        <text x="590" y="28" text-anchor="middle" class="mono sm mu">14</text>
+        <text x="670" y="28" text-anchor="middle" class="mono sm mu">16</text>
+        <text x="710" y="28" text-anchor="middle" class="mono sm ac">17</text>
+        <rect class="box" x="30" y="40" width="80" height="60"/>
+        <rect class="box" x="110" y="40" width="240" height="60"/>
+        <rect class="box" x="350" y="40" width="240" height="60"/>
+        <rect class="box" x="590" y="40" width="80" height="60"/>
+        <rect class="box" x="670" y="40" width="40" height="60"/>
+        <path class="soft" d="M710 40 H930 L918 70 L930 100 H710 Z"/>
+        <g class="tick">
+          <line x1="70" y1="92" x2="70" y2="100"/>
+          <line x1="150" y1="92" x2="150" y2="100"/><line x1="190" y1="92" x2="190" y2="100"/><line x1="230" y1="92" x2="230" y2="100"/><line x1="270" y1="92" x2="270" y2="100"/><line x1="310" y1="92" x2="310" y2="100"/>
+          <line x1="390" y1="92" x2="390" y2="100"/><line x1="430" y1="92" x2="430" y2="100"/><line x1="470" y1="92" x2="470" y2="100"/><line x1="510" y1="92" x2="510" y2="100"/><line x1="550" y1="92" x2="550" y2="100"/>
+          <line x1="630" y1="92" x2="630" y2="100"/>
+        </g>
+        <text x="70" y="75" text-anchor="middle" class="mono">length</text>
+        <text x="230" y="75" text-anchor="middle" class="mono">src MAC</text>
+        <text x="470" y="75" text-anchor="middle" class="mono">dst MAC</text>
+        <text x="630" y="75" text-anchor="middle" class="mono">vlan</text>
+        <text x="690" y="75" text-anchor="middle" class="mono sm">pri</text>
+        <text x="810" y="75" text-anchor="middle" class="mono">payload</text>
+        <text x="70" y="124" text-anchor="middle" class="sm mu">2 B</text>
+        <text x="230" y="124" text-anchor="middle" class="sm mu">6 B</text>
+        <text x="470" y="124" text-anchor="middle" class="sm mu">6 B</text>
+        <text x="630" y="124" text-anchor="middle" class="sm mu">2 B</text>
+        <text x="690" y="124" text-anchor="middle" class="sm mu">1 B</text>
+        <text x="810" y="124" text-anchor="middle" class="sm mu">0 to 1500 B</text>
+        <line class="wa" x1="30" y1="146" x2="710" y2="146"/>
+        <text x="370" y="141" text-anchor="middle" class="sm ac">header: always 17 bytes, read it first</text>
+      </svg>
+      </div>
+      <figcaption>Drawn to scale, one tick per byte. Read the 17-byte header, take <code>length</code> from it, then read exactly that many payload bytes.</figcaption>
+    </figure>
+    <div class="two">
+      <div>
+        <h3>Three traps</h3>
+        <ul>
+          <li><strong>Partial reads.</strong> TCP is a byte stream. One <code>read()</code> can return 5 bytes of a frame, or one and a half frames.</li>
+          <li><strong>Byte order.</strong> <code>length</code> and <code>vlan</code> travel in network byte order: convert with <code>ntohs</code> and <code>htons</code>.</li>
+          <li><strong>Struct padding.</strong> A C struct with these fields has <code>sizeof</code> 18, not 17. Read into a byte buffer and unpack it.</li>
+        </ul>
+      </div>
+      <pre><span class="c">/* returns n, 0 if the peer closed, -1 on error */</span>
+ssize_t read_full(int fd, void *buf, size_t n)
+{
+    size_t got = 0;
+    while (got &lt; n) {
+        ssize_t r = read(fd, (char *)buf + got, n - got);
+        if (r == 0) return 0;
+        if (r &lt; 0) {
+            if (errno == EINTR) continue;
+            return -1;
+        }
+        got += r;
+    }
+    return got;
+}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 05 -->
+<section class="slide" id="s5">
+  <header><span class="no">05</span><h2>Inside the switch: the threads</h2><span class="tag">Tier 1 · items 2 to 4</span></header>
+  <div class="body">
+    <figure>
+      <div class="fig">
+      <svg class="d" viewBox="0 0 960 430" role="img" aria-label="Each port has a receiver thread and a sender thread. The receiver reads frames from its host, learns and looks up in the MAC table, and puts the frame on the output queue of each destination port. Each port's sender thread takes frames from its queue and writes them to its host. Helper threads: accept, aging, token timer, signal, admin, logger.">
+        <defs><marker id="a-ink-5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-5" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+        <text x="80" y="22" text-anchor="middle" class="sm mu">host A</text>
+        <text x="260" y="22" text-anchor="middle" class="sm mu">port 1 receiver</text>
+        <text x="510" y="22" text-anchor="middle" class="sm mu">output queues (bounded)</text>
+        <text x="720" y="22" text-anchor="middle" class="sm mu">sender threads</text>
+        <text x="890" y="22" text-anchor="middle" class="sm mu">hosts</text>
+        <!-- host A -->
+        <rect class="box" x="20" y="60" width="120" height="50" rx="3"/>
+        <text x="80" y="90" text-anchor="middle" class="mono sm">socket</text>
+        <line class="w" x1="140" y1="85" x2="174" y2="85" marker-end="url(#a-ink-5)"/>
+        <text x="157" y="77" text-anchor="middle" class="sm mu">read</text>
+        <!-- receiver -->
+        <rect class="hotbox" x="180" y="60" width="160" height="50" rx="3"/>
+        <text x="260" y="82" text-anchor="middle" class="t">receiver</text>
+        <text x="260" y="100" text-anchor="middle" class="sm mu">thread, port 1</text>
+        <!-- MAC table -->
+        <line class="w" x1="260" y1="110" x2="260" y2="164" marker-start="url(#a-ink-s-5)" marker-end="url(#a-ink-5)"/>
+        <text x="250" y="142" text-anchor="end" class="sm mu">learn, look up</text>
+        <rect class="soft" x="180" y="170" width="160" height="56" rx="3"/>
+        <text x="260" y="194" text-anchor="middle" class="t">MAC table</text>
+        <text x="260" y="213" text-anchor="middle" class="sm mu">shared by all threads</text>
+        <!-- fan out -->
+        <line class="wa" x1="340" y1="80" x2="414" y2="65" marker-end="url(#a-ac-5)"/>
+        <line class="wa" x1="340" y1="88" x2="414" y2="155" marker-end="url(#a-ac-5)"/>
+        <line class="wa" x1="340" y1="96" x2="414" y2="245" marker-end="url(#a-ac-5)"/>
+        <text x="376" y="58" text-anchor="middle" class="sm ac">enqueue</text>
+        <!-- queues -->
+        <g>
+          <rect class="slot" x="420" y="45" width="45" height="40"/><rect class="slot" x="465" y="45" width="45" height="40"/><rect class="slotf" x="510" y="45" width="45" height="40"/><rect class="slotf" x="555" y="45" width="45" height="40"/>
+          <rect class="slot" x="420" y="135" width="45" height="40"/><rect class="slot" x="465" y="135" width="45" height="40"/><rect class="slot" x="510" y="135" width="45" height="40"/><rect class="slotf" x="555" y="135" width="45" height="40"/>
+          <rect class="slot" x="420" y="225" width="45" height="40"/><rect class="slotf" x="465" y="225" width="45" height="40"/><rect class="slotf" x="510" y="225" width="45" height="40"/><rect class="slotf" x="555" y="225" width="45" height="40"/>
+        </g>
+        <text x="510" y="102" text-anchor="middle" class="mono sm mu">port 2</text>
+        <text x="510" y="192" text-anchor="middle" class="mono sm mu">port 3</text>
+        <text x="510" y="282" text-anchor="middle" class="mono sm mu">port 4</text>
+        <!-- senders -->
+        <line class="w" x1="600" y1="65" x2="644" y2="65" marker-end="url(#a-ink-5)"/>
+        <line class="w" x1="600" y1="155" x2="644" y2="155" marker-end="url(#a-ink-5)"/>
+        <line class="w" x1="600" y1="245" x2="644" y2="245" marker-end="url(#a-ink-5)"/>
+        <rect class="box" x="650" y="45" width="140" height="40" rx="3"/><text x="720" y="70" text-anchor="middle">sender, port 2</text>
+        <rect class="box" x="650" y="135" width="140" height="40" rx="3"/><text x="720" y="160" text-anchor="middle">sender, port 3</text>
+        <rect class="box" x="650" y="225" width="140" height="40" rx="3"/><text x="720" y="250" text-anchor="middle">sender, port 4</text>
+        <line class="w" x1="790" y1="65" x2="834" y2="65" marker-end="url(#a-ink-5)"/>
+        <line class="w" x1="790" y1="155" x2="834" y2="155" marker-end="url(#a-ink-5)"/>
+        <line class="w" x1="790" y1="245" x2="834" y2="245" marker-end="url(#a-ink-5)"/>
+        <text x="812" y="57" text-anchor="middle" class="sm mu">write</text>
+        <rect class="box" x="840" y="45" width="100" height="40" rx="3"/><text x="890" y="70" text-anchor="middle">host B</text>
+        <rect class="box" x="840" y="135" width="100" height="40" rx="3"/><text x="890" y="160" text-anchor="middle">host C</text>
+        <rect class="box" x="840" y="225" width="100" height="40" rx="3"/><text x="890" y="250" text-anchor="middle">host D</text>
+        <!-- helpers -->
+        <line class="tick" x1="20" y1="310" x2="940" y2="310"/>
+        <text x="20" y="336" class="sm mu">HELPER THREADS (one of each)</text>
+        <rect class="soft" x="20" y="350" width="140" height="62" rx="3"/><text x="90" y="375" text-anchor="middle" class="t">accept</text><text x="90" y="396" text-anchor="middle" class="sm mu">new host, new port</text>
+        <rect class="soft" x="176" y="350" width="140" height="62" rx="3"/><text x="246" y="375" text-anchor="middle" class="t">aging</text><text x="246" y="396" text-anchor="middle" class="sm mu">removes old MACs</text>
+        <rect class="soft" x="332" y="350" width="140" height="62" rx="3"/><text x="402" y="375" text-anchor="middle" class="t">token timer</text><text x="402" y="396" text-anchor="middle" class="sm mu">refills rate limits</text>
+        <rect class="soft" x="488" y="350" width="140" height="62" rx="3"/><text x="558" y="375" text-anchor="middle" class="t">signals</text><text x="558" y="396" text-anchor="middle" class="sm mu">sigwait loop</text>
+        <rect class="soft" x="644" y="350" width="140" height="62" rx="3"/><text x="714" y="375" text-anchor="middle" class="t">admin</text><text x="714" y="396" text-anchor="middle" class="sm mu">swctl commands</text>
+        <rect class="soft" x="800" y="350" width="140" height="62" rx="3"/><text x="870" y="375" text-anchor="middle" class="t">logger</text><text x="870" y="396" text-anchor="middle" class="sm mu">writes switch.log</text>
+      </svg>
+      </div>
+      <figcaption>Drawn for one incoming port. In the real switch every port has both a receiver and a sender, so 8 ports means 16 port threads plus the helpers.</figcaption>
+    </figure>
+    <p>The receiver never writes to another host's socket. It only puts the frame on queues. Each port's own sender thread does the <code>write()</code>. That one rule is what keeps a slow host from hurting the others.</p>
+  </div>
+</section>
+
+<!-- 06 -->
+<section class="slide" id="s6">
+  <header><span class="no">06</span><h2>One slow host must not slow the others</h2><span class="tag">Tier 1 · item 2</span></header>
+  <div class="body">
+    <div class="two">
+      <figure>
+        <h3>Wrong: the receiver writes to every host</h3>
+        <div class="fig narrow">
+        <svg class="d" viewBox="0 0 460 250" role="img" aria-label="When one thread writes to every host, a host that stops reading makes write block, and the frames for the other hosts wait behind it.">
+          <defs><marker id="a-ink-6a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-6a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-6a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-6a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-6a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-6a" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+          <rect class="box" x="10" y="100" width="120" height="50" rx="3"/>
+          <text x="70" y="130" text-anchor="middle">receiver</text>
+          <line class="wd" x1="130" y1="115" x2="314" y2="50" marker-end="url(#a-mu-6a)"/>
+          <line class="wr" x1="130" y1="125" x2="314" y2="130" marker-end="url(#a-dr-6a)"/>
+          <line class="wd" x1="130" y1="135" x2="314" y2="210" marker-end="url(#a-mu-6a)"/>
+          <text x="226" y="117" text-anchor="middle" class="sm dr">write() blocks</text>
+          <rect class="box" x="320" y="30" width="130" height="40" rx="3"/><text x="385" y="55" text-anchor="middle">host B</text>
+          <rect class="dropbox" x="320" y="110" width="130" height="40" rx="3"/><text x="385" y="135" text-anchor="middle">host C</text>
+          <text x="385" y="168" text-anchor="middle" class="sm dr">stopped reading</text>
+          <rect class="box" x="320" y="190" width="130" height="40" rx="3"/><text x="385" y="215" text-anchor="middle">host D</text>
+          <text x="226" y="66" text-anchor="middle" class="sm mu">waiting</text>
+          <text x="226" y="200" text-anchor="middle" class="sm mu">waiting</text>
+        </svg>
+        </div>
+        <figcaption>C's socket buffer fills up, <code>write()</code> blocks, and B and D get nothing.</figcaption>
+      </figure>
+      <figure>
+        <h3>Right: a queue and a sender per port</h3>
+        <div class="fig narrow">
+        <svg class="d" viewBox="0 0 460 250" role="img" aria-label="With a bounded queue per port, the slow host's queue fills and new frames for it are dropped and counted, while the queues for the other hosts keep flowing.">
+          <defs><marker id="a-ink-6b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-6b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-6b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-6b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-6b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-6b" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+          <rect class="box" x="10" y="100" width="100" height="50" rx="3"/>
+          <text x="60" y="130" text-anchor="middle">receiver</text>
+          <line class="wa" x1="110" y1="115" x2="164" y2="50" marker-end="url(#a-ac-6b)"/>
+          <line class="wr" x1="110" y1="125" x2="164" y2="130" marker-end="url(#a-dr-6b)"/>
+          <line class="wa" x1="110" y1="135" x2="164" y2="210" marker-end="url(#a-ac-6b)"/>
+          <rect class="slot" x="170" y="35" width="30" height="30"/><rect class="slot" x="200" y="35" width="30" height="30"/><rect class="slotf" x="230" y="35" width="30" height="30"/><rect class="slot" x="260" y="35" width="30" height="30"/>
+          <rect class="slotr" x="170" y="115" width="30" height="30"/><rect class="slotr" x="200" y="115" width="30" height="30"/><rect class="slotr" x="230" y="115" width="30" height="30"/><rect class="slotr" x="260" y="115" width="30" height="30"/>
+          <rect class="slot" x="170" y="195" width="30" height="30"/><rect class="slot" x="200" y="195" width="30" height="30"/><rect class="slot" x="230" y="195" width="30" height="30"/><rect class="slotf" x="260" y="195" width="30" height="30"/>
+          <text x="230" y="164" text-anchor="middle" class="sm dr">full: drop, count it</text>
+          <line class="wa" x1="290" y1="50" x2="334" y2="50" marker-end="url(#a-ac-6b)"/>
+          <line class="wd" x1="290" y1="130" x2="334" y2="130"/>
+          <line class="wa" x1="290" y1="210" x2="334" y2="210" marker-end="url(#a-ac-6b)"/>
+          <rect class="box" x="340" y="30" width="110" height="40" rx="3"/><text x="395" y="55" text-anchor="middle">host B</text>
+          <rect class="dropbox" x="340" y="110" width="110" height="40" rx="3"/><text x="395" y="135" text-anchor="middle">host C</text>
+          <rect class="box" x="340" y="190" width="110" height="40" rx="3"/><text x="395" y="215" text-anchor="middle">host D</text>
+        </svg>
+        </div>
+        <figcaption>Only C's queue is full. The receiver drops C's frame and moves on; B and D keep flowing.</figcaption>
+      </figure>
+    </div>
+    <p>We test this. One of our hidden test hosts connects and then never reads.</p>
+  </div>
+</section>
+
+<!-- 07 -->
+<section class="slide" id="s7">
+  <header><span class="no">07</span><h2>The bounded queue: condition variables</h2><span class="tag">New this project</span></header>
+  <div class="body">
+    <p class="lead">A sender with an empty queue must sleep, not spin. A <strong>condition variable</strong> lets a thread sleep until another thread says "something changed". It always goes with a mutex.</p>
+    <div class="two">
+      <pre><span class="c">/* receiver: never waits */</span>
+pthread_mutex_lock(&amp;q-&gt;lock);
+if (q-&gt;count == q-&gt;cap) {
+    q-&gt;dropped++;            <span class="c">/* full: drop */</span>
+    pthread_mutex_unlock(&amp;q-&gt;lock);
+    return;
+}
+q-&gt;item[q-&gt;tail] = f;
+q-&gt;tail = (q-&gt;tail + 1) % q-&gt;cap;
+q-&gt;count++;
+<span class="k">pthread_cond_signal</span>(&amp;q-&gt;not_empty);
+pthread_mutex_unlock(&amp;q-&gt;lock);</pre>
+      <pre><span class="c">/* sender: sleeps while empty */</span>
+pthread_mutex_lock(&amp;q-&gt;lock);
+while (q-&gt;count == 0 &amp;&amp; !q-&gt;closing)
+    <span class="k">pthread_cond_wait</span>(&amp;q-&gt;not_empty, &amp;q-&gt;lock);
+if (q-&gt;closing) { ... }       <span class="c">/* port shut down */</span>
+f = q-&gt;item[q-&gt;head];
+q-&gt;head = (q-&gt;head + 1) % q-&gt;cap;
+q-&gt;count--;
+pthread_mutex_unlock(&amp;q-&gt;lock);
+write_full(sock, f, ...);       <span class="c">/* outside the lock */</span></pre>
+    </div>
+    <ul>
+      <li><code>pthread_cond_wait</code> unlocks the mutex while it sleeps and locks it again before it returns.</li>
+      <li>Always <code>while</code>, never <code>if</code>: the thread can wake up when nothing changed.</li>
+      <li>Never hold a lock during a <code>write()</code> to a socket. The circular buffer arithmetic is the same as Lab 07, section 3.4.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 08 -->
+<section class="slide" id="s8">
+  <header><span class="no">08</span><h2>A broadcast is one frame, shared</h2><span class="tag">Tier 1 · item 3</span></header>
+  <div class="body">
+    <figure>
+      <div class="fig">
+      <svg class="d" viewBox="0 0 960 260" role="img" aria-label="One broadcast frame with reference count 3 sits in memory once. Three port queues hold a pointer to it. Each sender lowers the count when it is done; the sender that brings it to zero frees the frame.">
+        <defs><marker id="a-ink-8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-8" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+        <rect class="slot" x="40" y="30" width="40" height="44"/><rect class="slot" x="80" y="30" width="40" height="44"/><rect class="slotf" x="120" y="30" width="40" height="44"/>
+        <rect class="slot" x="40" y="108" width="40" height="44"/><rect class="slot" x="80" y="108" width="40" height="44"/><rect class="slotf" x="120" y="108" width="40" height="44"/>
+        <rect class="slot" x="40" y="186" width="40" height="44"/><rect class="slot" x="80" y="186" width="40" height="44"/><rect class="slotf" x="120" y="186" width="40" height="44"/>
+        <text x="100" y="22" text-anchor="middle" class="mono sm mu">port 2 queue</text>
+        <text x="100" y="100" text-anchor="middle" class="mono sm mu">port 3 queue</text>
+        <text x="100" y="178" text-anchor="middle" class="mono sm mu">port 4 queue</text>
+        <line class="wa" x1="160" y1="52" x2="314" y2="118" marker-end="url(#a-ac-8)"/>
+        <line class="wa" x1="160" y1="130" x2="314" y2="130" marker-end="url(#a-ac-8)"/>
+        <line class="wa" x1="160" y1="208" x2="314" y2="142" marker-end="url(#a-ac-8)"/>
+        <text x="230" y="70" text-anchor="middle" class="sm ac">pointer</text>
+        <rect class="hotbox" x="320" y="95" width="220" height="70" rx="3"/>
+        <text x="430" y="124" text-anchor="middle" class="t">one broadcast frame</text>
+        <text x="430" y="148" text-anchor="middle" class="mono">refcount = 3</text>
+        <text x="620" y="40" class="sm mu">WHEN EACH SENDER FINISHES</text>
+        <text x="620" y="78" class="mono">sender 3 done</text><text x="780" y="78" class="mono">refcount 2</text>
+        <text x="620" y="118" class="mono">sender 2 done</text><text x="780" y="118" class="mono">refcount 1</text>
+        <text x="620" y="158" class="mono">sender 4 done</text><text x="780" y="158" class="mono ac">refcount 0</text>
+        <text x="780" y="182" class="mono ac">free(frame)</text>
+        <line class="tick" x1="620" y1="92" x2="920" y2="92"/>
+        <line class="tick" x1="620" y1="132" x2="920" y2="132"/>
+      </svg>
+      </div>
+      <figcaption>The frame is stored once. The senders finish in any order; only the last one frees it.</figcaption>
+    </figure>
+    <ul>
+      <li>The count changes from several threads, so changing it and checking for zero must happen together, under a mutex.</li>
+      <li>Set the count to the number of queues the frame really went into. A dropped copy (queue full) must not count.</li>
+      <li>Get this wrong and you get a <strong>use-after-free</strong> or a <strong>double free</strong>. Valgrind finds both; I will show it.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 09 -->
+<section class="slide" id="s9">
+  <header><span class="no">09</span><h2>The MAC table: one lock per bucket</h2><span class="tag">Tier 1 · item 4</span></header>
+  <div class="body">
+    <figure>
+      <div class="fig">
+      <svg class="d" viewBox="0 0 960 290" role="img" aria-label="The MAC table is a hash table. Each bucket has its own lock. The receiver for port 1 locks bucket 1 while the receiver for port 3 locks bucket 4 at the same time.">
+        <defs><marker id="a-ink-9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-9" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+        <rect class="hotbox" x="20" y="62" width="170" height="36" rx="3"/><text x="105" y="85" text-anchor="middle">receiver, port 1</text>
+        <rect class="hotbox" x="20" y="188" width="170" height="36" rx="3"/><text x="105" y="211" text-anchor="middle">receiver, port 3</text>
+        <line class="wa" x1="190" y1="80" x2="254" y2="80" marker-end="url(#a-ac-9)"/>
+        <line class="wa" x1="190" y1="206" x2="254" y2="206" marker-end="url(#a-ac-9)"/>
+        <text x="222" y="72" text-anchor="middle" class="sm ac">lock</text>
+        <text x="222" y="198" text-anchor="middle" class="sm ac">lock</text>
+        <g>
+          <rect class="box" x="260" y="20" width="150" height="36"/><text x="276" y="43" class="mono sm">bucket 0</text>
+          <rect class="hotbox" x="260" y="62" width="150" height="36"/><text x="276" y="85" class="mono sm">bucket 1</text>
+          <rect class="box" x="260" y="104" width="150" height="36"/><text x="276" y="127" class="mono sm">bucket 2</text>
+          <rect class="box" x="260" y="146" width="150" height="36"/><text x="276" y="169" class="mono sm">bucket 3</text>
+          <rect class="hotbox" x="260" y="188" width="150" height="36"/><text x="276" y="211" class="mono sm">bucket 4</text>
+          <rect class="box" x="260" y="230" width="150" height="36"/><text x="276" y="253" class="mono sm">bucket 5</text>
+        </g>
+        <!-- padlocks -->
+        <g>
+          <path class="wm" d="M383 34 v-4 a6 6 0 0 1 12 0 v4"/><rect class="soft" x="380" y="34" width="18" height="13" rx="2"/>
+          <path class="wa" d="M383 76 v-4 a6 6 0 0 1 12 0 v4"/><rect class="slotf" x="380" y="76" width="18" height="13" rx="2"/>
+          <path class="wm" d="M383 118 v-4 a6 6 0 0 1 12 0 v4"/><rect class="soft" x="380" y="118" width="18" height="13" rx="2"/>
+          <path class="wm" d="M383 160 v-4 a6 6 0 0 1 12 0 v4"/><rect class="soft" x="380" y="160" width="18" height="13" rx="2"/>
+          <path class="wa" d="M383 202 v-4 a6 6 0 0 1 12 0 v4"/><rect class="slotf" x="380" y="202" width="18" height="13" rx="2"/>
+          <path class="wm" d="M383 244 v-4 a6 6 0 0 1 12 0 v4"/><rect class="soft" x="380" y="244" width="18" height="13" rx="2"/>
+        </g>
+        <line class="w" x1="410" y1="80" x2="464" y2="80" marker-end="url(#a-ink-9)"/>
+        <rect class="box" x="470" y="62" width="210" height="36" rx="3"/><text x="484" y="85" class="mono sm">..:0A  port 1  age 2s</text>
+        <line class="w" x1="410" y1="206" x2="464" y2="206" marker-end="url(#a-ink-9)"/>
+        <rect class="box" x="470" y="188" width="210" height="36" rx="3"/><text x="484" y="211" class="mono sm">..:0C  port 3  age 9s</text>
+        <line class="w" x1="680" y1="206" x2="724" y2="206" marker-end="url(#a-ink-9)"/>
+        <rect class="box" x="730" y="188" width="210" height="36" rx="3"/><text x="744" y="211" class="mono sm">..:1F  port 6  age 0s</text>
+        <line class="w" x1="410" y1="164" x2="464" y2="164" marker-end="url(#a-ink-9)"/>
+        <rect class="box" x="470" y="146" width="210" height="36" rx="3"/><text x="484" y="169" class="mono sm">..:0B  port 2  age 5s</text>
+      </svg>
+      </div>
+      <figcaption>Two receivers work in the table at the same time because they hold different bucket locks. With one global lock, one of them would wait.</figcaption>
+    </figure>
+    <div class="two">
+      <ul>
+        <li><strong>Aging:</strong> a thread removes entries not seen for T seconds.</li>
+        <li><strong>Host moved:</strong> a known MAC arrives on a new port: update it and log "MAC moved".</li>
+      </ul>
+      <ul>
+        <li><strong>At most K entries:</strong> when full, remove the least recently used one.</li>
+        <li><strong>Port security:</strong> more than M MACs on one port means an attack (MAC flooding). Shut that port down.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="slide" id="s10">
+  <header><span class="no">10</span><h2>A limit on ports: a counting semaphore</h2><span class="tag">Tier 1 · item 5</span></header>
+  <div class="body">
+    <div class="two">
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <p>The semaphore starts at the number of ports. Each new host takes one (<code>sem_wait</code>), each host that leaves gives one back (<code>sem_post</code>). This is the gate from Lab 08, Topic 9.</p>
+        <p>New here: a <strong>timeout</strong>. If no port frees up in time, the host gets a "switch full" reply and is disconnected.</p>
+      </div>
+      <pre>struct timespec t;
+clock_gettime(CLOCK_REALTIME, &amp;t);
+t.tv_sec += 5;                  <span class="c">/* wait at most 5 s */</span>
+if (<span class="k">sem_timedwait</span>(&amp;free_ports, &amp;t) == -1) {
+    if (errno == ETIMEDOUT)
+        send_switch_full(sock);
+    close(sock);
+}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="slide" id="s11">
+  <header><span class="no">11</span><h2>Scheduling inside the switch</h2><span class="tag">Tier 2 · items 6 and 7</span></header>
+  <div class="body">
+    <figure>
+      <div class="fig">
+      <svg class="d" viewBox="0 0 960 200" role="img" aria-label="Each port has high, normal and low queues. The sender thread picks frames with weighted round robin 5 to 3 to 1, so one round sends five high, three normal and one low frame.">
+        <defs><marker id="a-ink-11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-11" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-11" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+        <text x="30" y="47" class="mono sm mu">high</text><text x="30" y="107" class="mono sm mu">normal</text><text x="30" y="167" class="mono sm mu">low</text>
+        <g>
+          <rect class="slotf" x="90" y="25" width="34" height="34"/><rect class="slotf" x="124" y="25" width="34" height="34"/><rect class="slotf" x="158" y="25" width="34" height="34"/><rect class="slotf" x="192" y="25" width="34" height="34"/><rect class="slotf" x="226" y="25" width="34" height="34"/>
+          <rect class="slot" x="90" y="85" width="34" height="34"/><rect class="slot" x="124" y="85" width="34" height="34"/><rect class="slotf" x="158" y="85" width="34" height="34"/><rect class="slotf" x="192" y="85" width="34" height="34"/><rect class="slotf" x="226" y="85" width="34" height="34"/>
+          <rect class="slot" x="90" y="145" width="34" height="34"/><rect class="slot" x="124" y="145" width="34" height="34"/><rect class="slot" x="158" y="145" width="34" height="34"/><rect class="slot" x="192" y="145" width="34" height="34"/><rect class="slotf" x="226" y="145" width="34" height="34"/>
+        </g>
+        <line class="w" x1="260" y1="42" x2="334" y2="92" marker-end="url(#a-ink-11)"/>
+        <line class="w" x1="260" y1="102" x2="334" y2="102" marker-end="url(#a-ink-11)"/>
+        <line class="w" x1="260" y1="162" x2="334" y2="112" marker-end="url(#a-ink-11)"/>
+        <rect class="hotbox" x="340" y="66" width="200" height="72" rx="3"/>
+        <text x="440" y="94" text-anchor="middle" class="t">sender thread</text>
+        <text x="440" y="118" text-anchor="middle" class="sm">weighted round robin 5:3:1</text>
+        <line class="w" x1="540" y1="102" x2="594" y2="102" marker-end="url(#a-ink-11)"/>
+        <g>
+          <rect class="slotf" x="600" y="85" width="36" height="34"/><rect class="slotf" x="636" y="85" width="36" height="34"/><rect class="slotf" x="672" y="85" width="36" height="34"/><rect class="slotf" x="708" y="85" width="36" height="34"/><rect class="slotf" x="744" y="85" width="36" height="34"/>
+          <rect class="soft" x="780" y="85" width="36" height="34"/><rect class="soft" x="816" y="85" width="36" height="34"/><rect class="soft" x="852" y="85" width="36" height="34"/>
+          <rect class="slot" x="888" y="85" width="36" height="34"/>
+        </g>
+        <text x="618" y="107" text-anchor="middle" class="mono sm">H</text><text x="654" y="107" text-anchor="middle" class="mono sm">H</text><text x="690" y="107" text-anchor="middle" class="mono sm">H</text><text x="726" y="107" text-anchor="middle" class="mono sm">H</text><text x="762" y="107" text-anchor="middle" class="mono sm">H</text>
+        <text x="798" y="107" text-anchor="middle" class="mono sm">N</text><text x="834" y="107" text-anchor="middle" class="mono sm">N</text><text x="870" y="107" text-anchor="middle" class="mono sm">N</text><text x="906" y="107" text-anchor="middle" class="mono sm">L</text>
+        <text x="762" y="70" text-anchor="middle" class="sm mu">one round on the wire</text>
+        <text x="762" y="146" text-anchor="middle" class="sm mu">the low frame still gets its turn</text>
+      </svg>
+      </div>
+      <figcaption>The priority field of the frame picks the queue. Weights give each class a share; aging stops low frames from waiting forever when high traffic never stops.</figcaption>
+    </figure>
+    <div class="two">
+      <div>
+        <h3>Weighted round robin plus aging</h3>
+        <p>This is Lab 04 again, but inside a real program. Add aging: a low frame that has waited too long (for example 200 ms) is sent next, whatever the weights say.</p>
+      </div>
+      <div>
+        <h3>Rate limit: a token bucket</h3>
+        <p>Each port may send X frames per second. A timer thread adds tokens; sending one frame spends one. A sender with no tokens waits with <code>pthread_cond_timedwait</code>, never <code>sleep()</code> and never a spin loop.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 12 -->
+<section class="slide" id="s12">
+  <header><span class="no">12</span><h2>VLANs, a trunk port, and mirroring</h2><span class="tag">Tier 2 · items 8 and 9</span></header>
+  <div class="body">
+    <figure>
+      <div class="fig">
+      <svg class="d" viewBox="0 0 960 270" role="img" aria-label="Ports 1 and 3 are on VLAN 10, ports 2 and 4 on VLAN 20. A broadcast from port 1 reaches port 3 and the trunk port, but not ports 2 and 4. The trunk carries every VLAN and keeps the vlan field.">
+        <defs><marker id="a-ink-12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-12" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-12" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+        <rect class="p10" x="200" y="20" width="120" height="56" rx="3"/><text x="260" y="44" text-anchor="middle" class="t">host A</text><text x="260" y="64" text-anchor="middle" class="sm t10">VLAN 10</text>
+        <rect class="p20" x="340" y="20" width="120" height="56" rx="3"/><text x="400" y="44" text-anchor="middle" class="t">host B</text><text x="400" y="64" text-anchor="middle" class="sm t20">VLAN 20</text>
+        <rect class="p10" x="480" y="20" width="120" height="56" rx="3"/><text x="540" y="44" text-anchor="middle" class="t">host C</text><text x="540" y="64" text-anchor="middle" class="sm t10">VLAN 10</text>
+        <rect class="p20" x="620" y="20" width="120" height="56" rx="3"/><text x="680" y="44" text-anchor="middle" class="t">host D</text><text x="680" y="64" text-anchor="middle" class="sm t20">VLAN 20</text>
+        <line class="w10" x1="260" y1="76" x2="260" y2="119"/>
+        <line class="wm" x1="400" y1="76" x2="400" y2="119"/>
+        <line class="w10" x1="540" y1="119" x2="540" y2="82" marker-end="url(#a-10-12)"/>
+        <line class="wm" x1="680" y1="76" x2="680" y2="119"/>
+        <rect class="big" x="160" y="130" width="620" height="90" rx="3"/>
+        <rect class="p10" x="240" y="119" width="40" height="22" rx="2"/><text x="260" y="135" text-anchor="middle" class="mono sm">1</text>
+        <rect class="p20" x="380" y="119" width="40" height="22" rx="2"/><text x="400" y="135" text-anchor="middle" class="mono sm">2</text>
+        <rect class="p10" x="520" y="119" width="40" height="22" rx="2"/><text x="540" y="135" text-anchor="middle" class="mono sm">3</text>
+        <rect class="p20" x="660" y="119" width="40" height="22" rx="2"/><text x="680" y="135" text-anchor="middle" class="mono sm">4</text>
+        <rect class="ptrunk" x="769" y="158" width="64" height="34" rx="2"/><text x="801" y="180" text-anchor="middle" class="mono sm">trunk</text>
+        <polyline class="w10" points="260,141 260,172 540,172 540,141"/>
+        <polyline class="w10" points="540,172 763,172" marker-end="url(#a-10-12)"/>
+        <text x="400" y="200" text-anchor="middle" class="sm mu">broadcast from A, VLAN 10 only</text>
+        <text x="200" y="210" text-anchor="middle" class="t">SWITCH</text>
+        <line class="wa" x1="833" y1="175" x2="940" y2="175"/>
+        <text x="886" y="166" text-anchor="middle" class="sm ac">all VLANs</text>
+        <text x="886" y="196" text-anchor="middle" class="sm mu">vlan field kept</text>
+        <text x="400" y="248" text-anchor="middle" class="sm mu">B and D (VLAN 20) never see it</text>
+      </svg>
+      </div>
+      <figcaption>A normal port belongs to one VLAN. The trunk port belongs to all of them, so a frame that leaves through it keeps its <code>vlan</code> field and the other side knows where it belongs.</figcaption>
+    </figure>
+    <ul>
+      <li><strong>VLAN rule:</strong> forwarding and flooding only reach ports of the same VLAN.</li>
+      <li><strong>Mirroring:</strong> <code>swctl mirror 3 7</code> sends a copy of everything on port 3 to a sniffer on port 7. Mirroring must not slow port 3: copy into port 7's queue, so the bounded-queue rule from slide 06 applies again.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 13 -->
+<section class="slide" id="s13">
+  <header><span class="no">13</span><h2>Admin tool, shared memory, signals, logging</h2><span class="tag">Tier 2 · items 11 to 13</span></header>
+  <div class="body">
+    <div class="tbl">
+    <table>
+      <thead><tr><th>Item</th><th>OS mechanism</th><th>Calls</th></tr></thead>
+      <tbody>
+        <tr><td><code>swctl show mac</code>, <code>shutdown 3</code>, <code>vlan 3 20</code></td><td>UNIX domain socket (a local socket with a file path)</td><td class="m">socket(AF_UNIX) bind listen accept</td></tr>
+        <tr><td><code>swctl stats --watch</code></td><td>POSIX shared memory, read by a second process</td><td class="m">shm_open mmap</td></tr>
+        <tr><td>Counters safe across processes</td><td>A mutex that lives in shared memory</td><td class="m">pthread_mutexattr_setpshared</td></tr>
+        <tr><td>SIGINT, SIGHUP, SIGUSR1</td><td>One signal thread; all other threads block signals</td><td class="m">pthread_sigmask sigwait</td></tr>
+        <tr><td>Host vanished mid-write</td><td>Ignore SIGPIPE; <code>write()</code> then fails with EPIPE</td><td class="m">signal(SIGPIPE, SIG_IGN)</td></tr>
+        <tr><td>Log file</td><td>A queue of messages and one logger thread</td><td class="m">mutex + condition variable</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="two">
+      <pre><span class="c">/* main(), BEFORE creating any thread */</span>
+sigset_t set;
+sigemptyset(&amp;set);
+sigaddset(&amp;set, SIGINT);
+sigaddset(&amp;set, SIGHUP);
+sigaddset(&amp;set, SIGUSR1);
+<span class="k">pthread_sigmask</span>(SIG_BLOCK, &amp;set, NULL);
+<span class="c">/* every thread created now inherits the mask */</span></pre>
+      <pre><span class="c">/* the signal thread */</span>
+for (;;) {
+    int sig;
+    <span class="k">sigwait</span>(&amp;set, &amp;sig);
+    if (sig == SIGINT)  start_shutdown();
+    if (sig == SIGHUP)  reload_config();
+    if (sig == SIGUSR1) dump_mac_table();
+}</pre>
+    </div>
+    <p>In Lab 07 you wrote signal handlers. Here there are no handlers: the signal thread receives the signal as a normal function return, so it may lock mutexes and call anything.</p>
+  </div>
+</section>
+
+<!-- 14 -->
+<section class="slide" id="s14">
+  <header><span class="no">14</span><h2>Live reconfiguration and the lock order</h2><span class="tag">Tier 2 · item 10, the hardest</span></header>
+  <div class="body">
+    <div class="two">
+      <div>
+        <h3><code>swctl shutdown 3</code> while traffic flows</h3>
+        <ol>
+          <li>Mark port 3 down, so no receiver queues new frames for it.</li>
+          <li>Set <code>closing</code> and broadcast its condition variable, so a sleeping sender wakes up.</li>
+          <li>Drop the frames still in its queue (each one: lower its refcount).</li>
+          <li>Call <code>shutdown()</code> on the socket, so the blocked <code>read()</code> in the receiver returns.</li>
+          <li>Join both threads, free the port, and <code>sem_post</code> the free-port semaphore.</li>
+        </ol>
+      </div>
+      <div>
+        <h3>A lock order (example)</h3>
+        <p style="margin-bottom:10px">Commands like "clear mac" or "vlan 3 20" take several locks. If two threads take them in different orders, they can deadlock. Pick one order, write it in the report, and follow it everywhere:</p>
+        <ol>
+          <li>the port table lock</li>
+          <li>port locks, lowest port number first</li>
+          <li>MAC bucket locks, lowest bucket first</li>
+          <li>the stats mutex, always last</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 -->
+<section class="slide" id="s15">
+  <header><span class="no">15</span><h2>Bonus: two switches joined by a trunk</h2><span class="tag">Tier 3 · beyond full marks</span></header>
+  <div class="body">
+    <figure>
+      <div class="fig">
+      <svg class="d" viewBox="0 0 960 300" role="img" aria-label="Switch A and switch B are two processes joined by two pipes: pipe 1 carries frames from A to B and pipe 2 carries frames from B to A. Together the two pipes are a bidirectional channel called a trunk.">
+        <defs><marker id="a-ink-15" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ac-15" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ac" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-mu-15" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-mu" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-dr-15" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-dr" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-10-15" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-10" d="M0 0 L10 5 L0 10 Z"/></marker><marker id="a-ink-s-15" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="mk-ink" d="M10 0 L0 5 L10 10 Z"/></marker></defs>
+        <rect class="p10" x="60" y="10" width="120" height="44" rx="3"/><text x="120" y="37" text-anchor="middle">host ..:0A</text>
+        <rect class="p20" x="220" y="10" width="120" height="44" rx="3"/><text x="280" y="37" text-anchor="middle">host ..:0B</text>
+        <rect class="p10" x="620" y="10" width="120" height="44" rx="3"/><text x="680" y="37" text-anchor="middle">host ..:0C</text>
+        <rect class="p20" x="780" y="10" width="120" height="44" rx="3"/><text x="840" y="37" text-anchor="middle">host ..:0D</text>
+        <line class="wm" x1="120" y1="54" x2="120" y2="90"/><line class="wm" x1="280" y1="54" x2="280" y2="90"/>
+        <line class="wm" x1="680" y1="54" x2="680" y2="90"/><line class="wm" x1="840" y1="54" x2="840" y2="90"/>
+        <rect class="big" x="40" y="90" width="320" height="140" rx="3"/>
+        <text x="60" y="120" class="t">switch A (process)</text>
+        <text x="60" y="150" class="sm mu">MAC table</text>
+        <text x="60" y="172" class="mono sm">..:0A  port 1</text>
+        <text x="60" y="192" class="mono sm">..:0C  trunk</text>
+        <rect class="big" x="600" y="90" width="320" height="140" rx="3"/>
+        <text x="648" y="120" class="t">switch B (process)</text>
+        <text x="648" y="150" class="sm mu">MAC table</text>
+        <text x="648" y="172" class="mono sm">..:0C  port 1</text>
+        <text x="648" y="192" class="mono sm">..:0A  trunk</text>
+        <rect class="ptrunk" x="330" y="128" width="48" height="64" rx="2"/>
+        <rect class="ptrunk" x="582" y="128" width="48" height="64" rx="2"/>
+        <line class="wa" x1="378" y1="145" x2="576" y2="145" marker-end="url(#a-ac-15)"/>
+        <line class="wa" x1="582" y1="175" x2="384" y2="175" marker-end="url(#a-ac-15)"/>
+        <text x="480" y="134" text-anchor="middle" class="mono sm">pipe 1: A writes, B reads</text>
+        <text x="480" y="196" text-anchor="middle" class="mono sm">pipe 2: B writes, A reads</text>
+        <path class="w" d="M378 246 v8 h204 v-8"/>
+        <line class="w" x1="480" y1="254" x2="480" y2="262"/>
+        <text x="480" y="282" text-anchor="middle" class="t ac">together: a trunk</text>
+      </svg>
+      </div>
+      <figcaption>A pipe carries data one way, so a link in both directions needs two pipes. Such a bidirectional channel is called a trunk. Every frame on it keeps its <code>vlan</code> field.</figcaption>
+    </figure>
+    <div class="two">
+      <ul>
+        <li><strong>Two switches:</strong> this is the two-pipe channel from Lab 05 (section 3.5, <code>two_way.c</code>). Each switch treats its end as its trunk port. Host ..:0A reaches ..:0C on the same VLAN, and each switch learns the other's hosts as "behind the trunk".</li>
+      </ul>
+      <ul>
+        <li><strong>Supervisor:</strong> a parent process restarts the switch when it crashes (<code>fork</code>, <code>waitpid</code>); the MAC table survives in shared memory.</li>
+        <li><strong>Benchmark:</strong> a load generator and a graph: one global lock, striped locks, a read-write lock.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 16 -->
+<section class="slide" id="s16">
+  <header><span class="no">16</span><h2>Sockets in one slide</h2><span class="tag">New this project</span></header>
+  <div class="body">
+    <p class="lead">A socket is a file descriptor that connects two processes, maybe on two machines. After the setup you use plain <code>read()</code> and <code>write()</code>, as with a pipe, but in both directions.</p>
+    <div class="two">
+      <div>
+        <h3>Server: the switch</h3>
+        <pre>int s = socket(AF_INET, SOCK_STREAM, 0);
+bind(s, (struct sockaddr *)&amp;addr, sizeof addr);
+listen(s, 16);
+for (;;) {
+    int c = <span class="k">accept</span>(s, NULL, NULL);
+    <span class="c">/* c is one host = one port */</span>
+}</pre>
+      </div>
+      <div>
+        <h3>Client: a host</h3>
+        <pre>int s = socket(AF_INET, SOCK_STREAM, 0);
+<span class="k">connect</span>(s, (struct sockaddr *)&amp;addr, sizeof addr);
+write(s, frame, 17 + len);
+read_full(s, header, 17);</pre>
+      </div>
+    </div>
+    <ul>
+      <li><strong>TCP</strong> (<code>AF_INET</code>) for hosts: an address and port, like <code>127.0.0.1:9000</code>.</li>
+      <li><strong>UNIX domain</strong> (<code>AF_UNIX</code>) for swctl: the address is a file path. Same calls, local only.</li>
+      <li>Set <code>SO_REUSEADDR</code> on the server, or after a crash <code>bind()</code> fails for a minute with "Address already in use".</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 17 -->
+<section class="slide" id="s17">
+  <header><span class="no">17</span><h2>What you already know, and what is new</h2><span class="tag">Course map</span></header>
+  <div class="body">
+    <div class="tbl">
+    <table>
+      <thead><tr><th>Concept</th><th>Where you saw it</th><th>Where it goes in the switch</th></tr></thead>
+      <tbody>
+        <tr><td>C, make, gdb</td><td class="seen">Lab 02</td><td>everything; your own Makefile</td></tr>
+        <tr><td>fork, exec, waitpid</td><td class="seen">Lab 03</td><td>the supervisor (bonus), test scripts</td></tr>
+        <tr><td>Scheduling, aging</td><td class="seen">Lab 04</td><td>weighted round robin in the sender</td></tr>
+        <tr><td>Pipes, two-way pipes</td><td class="seen">Lab 05</td><td>the trunk (bonus)</td></tr>
+        <tr><td>Shell scripts that test programs</td><td class="seen">Lab 06</td><td>your own test scripts</td></tr>
+        <tr><td>Shared memory, signals, client-server</td><td class="seen">Lab 07</td><td>stats for swctl; SIGINT, SIGHUP, SIGUSR1</td></tr>
+        <tr><td>Threads, mutexes, semaphores, races</td><td class="seen">Lab 08</td><td>the whole switch</td></tr>
+        <tr><td>TCP and UNIX domain sockets</td><td><span class="new">new</span></td><td>hosts and swctl</td></tr>
+        <tr><td>Condition variables, timed waits</td><td><span class="new">new</span></td><td>queues, token bucket, port limit</td></tr>
+        <tr><td>A signal thread with sigwait</td><td><span class="new">new</span></td><td>the signal thread</td></tr>
+        <tr><td>Process-shared mutex</td><td><span class="new">new</span></td><td>counters in shared memory</td></tr>
+        <tr><td>Reference counts, striped locks, lock order</td><td><span class="new">new</span></td><td>broadcasts, MAC table, reconfiguration</td></tr>
+        <tr><td>valgrind, ThreadSanitizer</td><td><span class="new">new</span></td><td>we run both on your switch</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- 18 -->
+<section class="slide" id="s18">
+  <header><span class="no">18</span><h2>The tools we mark with</h2><span class="tag">New this project</span></header>
+  <div class="body">
+    <div class="two">
+      <div>
+        <h3>valgrind: memory errors</h3>
+        <p style="margin-bottom:10px">Runs your program on a simulated CPU and checks every memory access. Finds use-after-free, double free, leaks. Slow (20 to 50 times), so use small tests.</p>
+        <pre>valgrind --leak-check=full ./switch 9000 8
+
+<span class="c">Invalid read of size 1</span>
+<span class="c">   by send_to_port (leak.c:20)</span>
+<span class="c"> Address ... inside a block of size 68 free'd</span>
+<span class="c">   by unref (leak.c:15)</span>
+<span class="c">definitely lost: 68 bytes in 1 blocks</span></pre>
+      </div>
+      <div>
+        <h3>ThreadSanitizer: data races</h3>
+        <p style="margin-bottom:10px">A compiler option. Reports two threads touching the same memory without a lock, even when the run gave the right answer. Build a separate binary for it.</p>
+        <pre>gcc ... -fsanitize=thread -pthread \
+    race.c -o race_tsan
+./race_tsan
+
+<span class="c">WARNING: ThreadSanitizer: data race</span>
+<span class="c">  Location is global 'counter'</span>
+<span class="c">SUMMARY: ... race.c:12 in worker</span></pre>
+      </div>
+    </div>
+    <div class="two">
+      <div>
+        <h3>gdb with threads (Lab 08)</h3>
+        <pre>gdb -p $(pidof switch)       <span class="c"># attach to a stuck switch</span>
+(gdb) info threads
+(gdb) thread apply all bt    <span class="c"># who waits on which lock?</span></pre>
+      </div>
+      <div>
+        <h3>Watching from outside</h3>
+        <pre>ps -T -p $(pidof switch)   <span class="c"># its threads</span>
+ss -tnp                    <span class="c"># TCP connections</span>
+ss -xlp                    <span class="c"># UNIX sockets</span>
+ls -l /dev/shm             <span class="c"># shared memory</span>
+kill -HUP $(pidof switch)  <span class="c"># send a signal</span></pre>
+      </div>
+    </div>
+    <p>Do not run the ThreadSanitizer binary under valgrind: use one tool per run, on two separate builds.</p>
+  </div>
+</section>
+
+<!-- 19 -->
+<section class="slide" id="s19">
+  <header><span class="no">19</span><h2>Rules, marking, and what to hand in</h2><span class="tag">Admin</span></header>
+  <div class="body">
+    <div class="tbl">
+    <table>
+      <thead><tr><th>Part</th><th>What</th><th>Weight</th></tr></thead>
+      <tbody>
+        <tr><td>Tier 1: Core</td><td>items 1 to 5, everyone</td><td class="m">50%</td></tr>
+        <tr><td>Tier 2: Advanced</td><td>items 6 to 13</td><td class="m">35%</td></tr>
+        <tr><td>Report</td><td>2 to 3 pages</td><td class="m">15%</td></tr>
+        <tr><td>Tier 3: Bonus</td><td>beyond 100%</td><td class="m">up to 15%</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="two">
+      <div>
+        <h3>Rules</h3>
+        <ul>
+          <li><code>gcc -std=c11 -Wall -Wextra -Werror -g -O0</code>, your own Makefile.</li>
+          <li>Clean under ThreadSanitizer and valgrind. We run both.</li>
+          <li>No busy waiting: <code>while (!flag);</code> or <code>sleep()</code> used to wait for another thread loses marks.</li>
+          <li>Check every call that can fail.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Hand in</h3>
+        <ul>
+          <li>All source files and the Makefile.</li>
+          <li>A README: how to build and run, and your config file format.</li>
+          <li>The report: thread diagram, every lock and what it protects, your lock order, one real bug and how you found it.</li>
+          <li>Which Tier 2 and Tier 3 items you did.</li>
+        </ul>
+      </div>
+    </div>
+    <p>Marking is mostly automatic: public tests (forwarding, broadcast) you can run yourself, and hidden tests with slow hosts, crashing hosts, many hosts at once, and admin commands and signals during traffic.</p>
+  </div>
+</section>
+
+<!-- 20 -->
+<section class="slide" id="s20">
+  <header><span class="no">20</span><h2>Where to start</h2><span class="tag">A build order that works</span></header>
+  <div class="body">
+    <ol>
+      <li><strong>Frames over TCP.</strong> A switch that accepts one host and prints every frame it reads. Write your <code>host</code> program at the same time. Test partial reads.</li>
+      <li><strong>Flooding.</strong> Several hosts; every frame goes to every other port. One receiver thread per port.</li>
+      <li><strong>Queues and senders.</strong> Bounded queue plus sender per port. Test with a host that stops reading.</li>
+      <li><strong>Refcounts, then the MAC table.</strong> Broadcast without copies; learning, lookup, aging.</li>
+      <li><strong>Port semaphore and clean SIGINT shutdown.</strong> Run valgrind and ThreadSanitizer now, not at the end.</li>
+      <li><strong>Tier 2</strong>, one item at a time, each followed by a ThreadSanitizer run.</li>
+    </ol>
+    <p>Keep a note of every bug you hit while you go. One of them goes in the report.</p>
+  </div>
+</section>
+
+<!-- 21 -->
+<section class="slide cover" id="s21">
+  <div class="body">
+    <div class="kicker">VIRTUAL SWITCH · OS FALL 2026</div>
+    <h1>Questions</h1>
+    <p class="lead">The full specification is in the project document. Read the frame format and the Tier 1 items first.</p>
+  </div>
+</section>
+
+</main>
+
+<nav class="nav" aria-label="Slides">
+  <button type="button" id="prev" aria-label="Previous slide">&#8593;</button>
+  <span id="count">01 / 21</span>
+  <button type="button" id="next" aria-label="Next slide">&#8595;</button>
+</nav>
+
+<script>
+(function () {
+  var slides = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var count = document.getElementById('count');
+  var cur = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show() { count.textContent = pad(cur + 1) + ' / ' + pad(slides.length); }
+  function go(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides[cur].scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    show();
+  }
+  document.getElementById('prev').addEventListener('click', function () { go(cur - 1); });
+  document.getElementById('next').addEventListener('click', function () { go(cur + 1); });
+  document.addEventListener('keydown', function (e) {
+    if (e.target.closest && e.target.closest('input,textarea')) return;
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); go(cur + 1); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(cur - 1); }
+  });
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (en) { if (en.isIntersecting) { cur = slides.indexOf(en.target); show(); } });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    slides.forEach(function (s) { io.observe(s); });
+  }
+  show();
+})();
+</script>
+
+</body></html>
