@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Virtual Switch Project Report</title>
+<style>
+@page { size: A4; margin: 15mm 17mm; }
+* { box-sizing: border-box; }
+body { color: #17202b; font: 9.5pt/1.35 Arial, sans-serif; margin: 0; }
+h1 { color: #123553; font-size: 22pt; margin: 0 0 4pt; }
+h2 { color: #123553; font-size: 14pt; margin: 0 0 7pt; }
+h3 { color: #24577b; font-size: 10.5pt; margin: 9pt 0 3pt; }
+p { margin: 0 0 6pt; }
+ul, ol { margin: 3pt 0 7pt 17pt; padding: 0; }
+li { margin: 0 0 3pt; }
+.subtitle { color: #526170; font-size: 11pt; margin-bottom: 13pt; }
+.page { break-after: page; page-break-after: always; }
+.page:last-child { break-after: auto; page-break-after: auto; }
+.diagram { border: 1px solid #b5c4d1; padding: 9pt; margin: 8pt 0; }
+.row { display: flex; align-items: stretch; gap: 7pt; margin: 6pt 0; }
+.box { flex: 1; border: 1px solid #55748e; background: #f0f5f8; padding: 6pt; text-align: center; }
+.box b { color: #123553; }
+.arrow { color: #24577b; font-size: 14pt; font-weight: bold; align-self: center; }
+.note { color: #4a5b6a; font-size: 8.5pt; }
+table { border-collapse: collapse; width: 100%; margin: 5pt 0 8pt; }
+th, td { border: 1px solid #b8c4ce; padding: 4pt 5pt; text-align: left; vertical-align: top; }
+th { background: #eaf0f4; }
+.small { font-size: 8.5pt; }
+.footer { border-top: 1px solid #ccd4dc; color: #64717d; font-size: 8pt; margin-top: 10pt; padding-top: 4pt; }
+</style>
+</head>
+<body>
+<section class="page">
+  <h1>Virtual Switch Project Report</h1>
+  <p class="subtitle">Operating Systems · Fall 2026 · Wasay</p>
+
+  <h2>Project and thread design</h2>
+  <p>The project implements a software network switch in C on Linux. Hosts connect to the switch over TCP, one connection per switch port. Each frame has a 17-byte header containing the payload length, source and destination MAC addresses, VLAN number, and priority, followed by the payload. The switch reads and writes complete frames even when TCP splits data across multiple operations.</p>
+  <p>The main switch thread accepts connections and assigns available ports. Separate worker threads handle each active port, timers, signals, admin commands, and log output.</p>
+
+  <div class="diagram">
+    <div class="row">
+      <div class="box"><b>Main thread</b><br>accepts host connections<br>assigns free ports</div>
+      <div class="arrow">→</div>
+      <div class="box"><b>Receiver per active port</b><br>reads frames<br>learns source MAC<br>selects VLAN destinations</div>
+      <div class="arrow">→</div>
+      <div class="box"><b>Bounded output queues</b><br>high · normal · low<br>shared packet references</div>
+      <div class="arrow">→</div>
+      <div class="box"><b>Sender per active port</b><br>weighted scheduling<br>token check<br>writes frames</div>
+    </div>
+    <div class="row">
+      <div class="box"><b>Aging thread</b><br>removes old MAC entries</div>
+      <div class="box"><b>Rate timer thread</b><br>refills tokens and wakes senders</div>
+      <div class="box"><b>Signal thread</b><br>handles SIGINT, SIGHUP, SIGUSR1</div>
+      <div class="box"><b>Admin thread</b><br>serves the local UNIX socket</div>
+      <div class="box"><b>Logger thread</b><br>writes timestamped messages</div>
+    </div>
+    <p class="note">The separate host program has a main thread for keyboard input and a receiver thread for frames from the switch. The separate swctl process sends admin commands over a UNIX socket and reads counters from shared memory.</p>
+  </div>
+
+  <h3>Forwarding and Tier 2 features</h3>
+  <p>A receiver validates each frame, learns its source MAC address, and looks up the destination by MAC address and VLAN. Known unicast frames go to the learned port; broadcasts and unknown destinations are copied to eligible ports. Packet reference counting lets those queued copies share one frame allocation. Each priority class has a bounded queue, with a 64-frame total limit per port. Senders use a 5:3:1 high-to-normal-to-low schedule, and a low-priority frame waiting more than 200 ms is selected early so it does not wait indefinitely.</p>
+  <p>A token bucket can limit each port’s output rate. A timer refills tokens every 100 ms, and a sender waits on a timed condition variable when it has no token. Access ports are assigned one VLAN; trunk ports keep the frame’s VLAN and carry traffic for all VLANs. Admin commands can mirror port traffic to a sniffer queue, change VLANs, clear the MAC table, or shut down and reopen ports while the switch is running.</p>
+  <div class="footer">Virtual Switch · Project report · Page 1 of 3</div>
+</section>
+
+<section class="page">
+  <h2>Locks, shared state, and lock order</h2>
+  <p>The switch uses small locks around the data each thread shares. Condition variables use the associated queue or timer mutex. The free-port semaphore tracks available connections. Atomic values are used for counters and the stop flag where a separate lock is not needed.</p>
+  <table>
+    <thead><tr><th>Lock</th><th>Data it protects</th></tr></thead>
+    <tbody>
+      <tr><td>Port table mutex</td><td>Port state, active socket assignment, VLAN/trunk settings, mirror destination, and shutdown state.</td></tr>
+      <tr><td>One output-queue mutex per port</td><td>Queue contents and positions for the three priority classes, timestamps, queue length, and closed state. Its condition variable wakes the sender.</td></tr>
+      <tr><td>One rate mutex per port</td><td>That port’s configured rate and available tokens.</td></tr>
+      <tr><td>One mutex per MAC bucket</td><td>Entries in that hash-table bucket, including address, VLAN, port, and last-seen time.</td></tr>
+      <tr><td>MAC eviction mutex</td><td>Serializes selection and removal when the table reaches its size limit; it is taken before one bucket mutex.</td></tr>
+      <tr><td>Packet reference mutex</td><td>The reference count for a packet shared by output queues.</td></tr>
+      <tr><td>Shared statistics mutex</td><td>Per-port frame-in, frame-out, dropped, and mirrored counters. It is process-shared so swctl can read the same counters.</td></tr>
+      <tr><td>Timer mutex</td><td>Wait and wakeup coordination for the aging and rate-timer threads.</td></tr>
+      <tr><td>Log queue mutex</td><td>Messages, queue positions, and shutdown state for the logger. Producers try the lock and skip a message if it is busy or full.</td></tr>
+      <tr><td>Host output mutex</td><td>Prevents the host’s input thread and receive thread from mixing terminal output.</td></tr>
+    </tbody>
+  </table>
+  <h3>Lock order used</h3>
+  <ol>
+    <li>When more than one lock is needed, the port table lock comes before an output queue, rate lock, or shared statistics lock.</li>
+    <li>An output queue lock may be followed by its packet reference lock when adding or releasing a queued packet, or by its rate lock while checking a token. No path takes the port table lock while holding a queue or rate lock.</li>
+    <li>The MAC eviction lock comes before one MAC bucket lock. Bucket locks are not nested, and MAC operations do not acquire the port table lock.</li>
+    <li>The timer and log queue locks are used on their own; the timer releases its lock before visiting port queues and rate limits.</li>
+  </ol>
+  <p>Following this order prevents two threads from waiting on each other in opposite orders. In particular, port reconfiguration and forwarding take the port table lock before the related port data, while MAC learning uses only its bucket and eviction locks.</p>
+
+  <h3>Signals and clean shutdown</h3>
+  <p>The main thread blocks SIGINT, SIGHUP, and SIGUSR1 before starting workers. A dedicated thread waits for these signals with <code>sigwait</code>. SIGINT closes listeners and active sockets, wakes workers, joins the service threads, and releases resources. SIGHUP reloads the selected configuration file. SIGUSR1 writes the current MAC table to <code>mac_table.dump</code>. SIGPIPE is ignored so a vanished host becomes a normal failed socket write instead of terminating the switch.</p>
+  <div class="footer">Virtual Switch · Project report · Page 2 of 3</div>
+</section>
+
+<section class="page">
+  <h2>Testing and one bug fixed</h2>
+  <p><code>make check</code> builds the project with strict compiler warnings and runs protocol, forwarding, and lifecycle tests. The checks cover fragmented frames, partial writes, broadcast and learned unicast, slow receivers, disconnect and port reuse, the port limit, MAC moves and aging, least-recently-used eviction, and port security.</p>
+  <p>Tier 2 network tests cover priority scheduling and low-priority aging, token-bucket rate limiting, VLAN isolation, trunk forwarding, mirroring, config reload, admin commands, port shutdown and restart, shared counters, the stats watch command, signal-triggered MAC dump, and timestamped log output. The Tier 2 network tests also ran under Valgrind and ThreadSanitizer. GCC’s static analyzer was run on the switch and swctl sources.</p>
+
+  <h3>Bug found during development</h3>
+  <p>GCC’s static analyzer found a path where a client socket could be closed twice if port reservation failed. The accept loop remained responsible for closing a rejected client, while the reservation failure path could also close it. Closing the same descriptor twice is unsafe because the operating system may reuse its number for another socket in between. The fix left socket ownership with the accept loop on failure, so each rejected client is closed once. The integration and connection-reuse checks passed after the change.</p>
+
+  <h2>Completion status</h2>
+  <table>
+    <thead><tr><th>Part</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Tier 1: core items 1–5</td><td>Completed and tested.</td></tr>
+      <tr><td>Tier 2: advanced items 6–13</td><td>Completed and tested: priority scheduling, rate limits, VLANs/trunk, mirroring, live reconfiguration, swctl and shared statistics, signal handling, and queued logging.</td></tr>
+      <tr><td>Tier 3: bonus</td><td>Not completed. The optional two-switch pipe link and supervisor are outside this submission.</td></tr>
+    </tbody>
+  </table>
+  <p>The project builds with <code>make</code>. The switch runs as <code>./switch TCP_PORT NUM_PORTS [CONFIG_FILE]</code>; the host runs as <code>./host SWITCH_IP TCP_PORT MAC</code>; admin commands use <code>./swctl</code>. The README describes config lines, command examples, shared counters, and signals.</p>
+  <p class="small">Source and test files are version-controlled in the project repository. The completed Tier 2 checkpoint is commit <code>2ca4118</code>.</p>
+  <div class="footer">Virtual Switch · Project report · Page 3 of 3</div>
+</section>
+</body>
+</html>

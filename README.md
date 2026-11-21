@@ -4,7 +4,9 @@ Operating Systems Fall 2026 course project.
 
 ## Build
 
-Run `make` to build the switch, test host, `swctl` admin tool, and protocol test program. Run `make check` to run the protocol and integration checks. Run `make clean` to remove generated files.
+Run `make` to build the switch, test host, `swctl` admin tool, and protocol test program. Run `make check` to run all protocol and integration checks, or run `./protocol_test` for the frame protocol check alone. Run `make clean` to remove generated files.
+
+The 3-page submission report is provided as `REPORT.pdf`; `REPORT.html` is its editable source.
 
 ## Run
 
@@ -22,7 +24,7 @@ port 1 rate 100
 mirror 1 4
 ```
 
-The switch supports 64 queued frames per port, 1,024 MAC table entries, 16 learned MAC addresses per port, a 300-second MAC age, and a five-second wait for a free port. Each port has high, normal, and low priority queues; the sender uses a 5:3:1 schedule and moves an aged low-priority frame forward. A timer refills rate-limit tokens every 100 ms.
+The switch supports 64 queued frames across the three priority queues per port, 1,024 MAC table entries, 16 learned MAC addresses per port, a 300-second MAC age, and a five-second wait for a free port. Each port has high, normal, and low priority queues; the sender uses a 5:3:1 schedule and moves an aged low-priority frame forward. A timer refills rate-limit tokens every 100 ms.
 
 ## Admin commands
 
@@ -30,7 +32,7 @@ Run `./swctl show mac`, `./swctl show ports`, `./swctl stats`, `./swctl stats --
 
 The main lock order is the port table lock before a port queue or rate lock, then shared statistics. MAC eviction takes the eviction lock before one MAC bucket lock. MAC bucket locks are not nested.
 
-## Tier 1 status
+## Completion status
 
 Tier 1 items 1 to 5 and Tier 2 items 6 to 13 are implemented. Frames use the fixed 17-byte header, and the switch handles fragmented input, partial writes, truncated connections, broadcasts, unknown destinations, and learned unicast. Each port has bounded priority queues and a sender thread. Broadcast packets share one frame with reference counting. The MAC table uses one lock per bucket, aging, least-recently-used eviction, move logging, and a per-port MAC limit. A timed semaphore limits active hosts. Tier 2 adds weighted scheduling, aging, token-bucket limits, VLANs and trunk ports, port mirroring, live admin commands, process-shared counters, signal handling, and queued timestamped logging.
 

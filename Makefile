@@ -22,7 +22,7 @@ switch_fastaging: src/switch.c src/frame.c src/io.c
 protocol_test: tests/protocol_test.c src/frame.c src/io.c
 	$(CC) $(CFLAGS) -Isrc $^ $(LDFLAGS) -o $@
 
-check: protocol_test switch switch_smallmac switch_fastaging
+check: protocol_test switch swctl switch_smallmac switch_fastaging
 	./protocol_test
 	python3 tests/switch_integration.py
 	python3 tests/tier1_edge_tests.py

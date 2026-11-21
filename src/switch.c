@@ -368,7 +368,8 @@ static bool queue_put(OutputQueue *queue, Packet *packet)
     unsigned priority = frame_priority(&packet->frame);
 
     PTHREAD_CHECK(pthread_mutex_lock(&queue->lock));
-    if (!queue->closing && queue->count[priority] < QUEUE_CAPACITY) {
+    if (!queue->closing && queue->total < QUEUE_CAPACITY &&
+        queue->count[priority] < QUEUE_CAPACITY) {
         packet_ref(packet);
         queue->items[priority][queue->tail[priority]] = packet;
         clock_gettime_check(CLOCK_MONOTONIC,
