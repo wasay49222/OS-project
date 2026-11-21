@@ -4,3 +4,5 @@
 /swctl
 /switch_smallmac
 /switch_fastaging
+/switch.log
+/mac_table.dump
