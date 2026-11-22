@@ -110,7 +110,7 @@ th { background: #eaf0f4; }
     <tbody>
       <tr><td>Tier 1: core items 1–5</td><td>Completed and tested.</td></tr>
       <tr><td>Tier 2: advanced items 6–13</td><td>Completed and tested: priority scheduling, rate limits, VLANs/trunk, mirroring, live reconfiguration, swctl and shared statistics, signal handling, and queued logging.</td></tr>
-      <tr><td>Tier 3: bonus</td><td>Not completed. The optional two-switch pipe link and supervisor are outside this submission.</td></tr>
+      <tr><td>Tier 3: bonus</td><td>Not completed. The optional two-switch pipe link, crash-restarting supervisor, and throughput benchmark with a comparison graph are outside this submission.</td></tr>
     </tbody>
   </table>
   <p>The project builds with <code>make</code>. The switch runs as <code>./switch TCP_PORT NUM_PORTS [CONFIG_FILE]</code>; the host runs as <code>./host SWITCH_IP TCP_PORT MAC</code>; admin commands use <code>./swctl</code>. The README describes config lines, command examples, shared counters, and signals.</p>
